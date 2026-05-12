@@ -74,8 +74,34 @@ dataViewerUI <- function(id){
                            withSpinner(DTOutput(ns("variants")), type = 4, color = "#8b1e5b")
                   ),
                   
-                  tabPanel("RNA Data",
-                           withSpinner(DTOutput(ns("rna")), type = 4, color = "#8b1e5b")
+                  tabPanel(
+                    "RNA Data",
+                    
+                    div(class = "filter-box",
+                        
+                        fluidRow(
+                          
+                          column(
+                            4,
+                            checkboxGroupInput(
+                              ns("drop_filters"),
+                              "DROP filters:",
+                              choices = c(
+                                "Aberrant Expression" = "expr",
+                                "Aberrant Splicing" = "splicing",
+                                "MAE" = "mae"
+                              ),
+                            )
+                          )
+                          
+                        )
+                    ),
+                    
+                    withSpinner(
+                      DTOutput(ns("rna")),
+                      type = 4,
+                      color = "#8b1e5b"
+                    )
                   )
       )
   )
@@ -107,18 +133,80 @@ dataViewerServer <- function(id, pool, selected_gene){
     # =====================
     get_drop_flags <- function(pool){
       
-      expr <- get_drop_expr(pool) %>% mutate(drop_expr = TRUE)
-      spl  <- get_drop_splicing(pool) %>% mutate(drop_splicing = TRUE)
-      mae  <- get_drop_mae(pool) %>% mutate(drop_mae = TRUE)
+      expr <- get_drop_expr(pool)
+      spl  <- get_drop_splicing(pool)
+      mae  <- get_drop_mae(pool)
       
-      gene_col_expr <- if("gene_name" %in% colnames(expr)) "gene_name" else "hgncSymbol"
-      gene_col_spl  <- if("gene_name" %in% colnames(spl)) "gene_name" else "hgncSymbol"
-      gene_col_mae  <- if("gene_name" %in% colnames(mae)) "gene_name" else "hgncSymbol"
+      # ===== EXPRESSION =====
+      if(nrow(expr) > 0){
+        
+        expr <- expr %>%
+          mutate(drop_expr = TRUE)
+        
+        gene_col_expr <- if("gene_name" %in% colnames(expr)){
+          "gene_name"
+        } else {
+          "hgncSymbol"
+        }
+        
+        expr <- expr %>%
+          select(gene = all_of(gene_col_expr), drop_expr)
+        
+      } else {
+        
+        expr <- data.frame(
+          gene = character(),
+          drop_expr = logical()
+        )
+      }
       
-      expr <- expr %>% select(gene = all_of(gene_col_expr), drop_expr)
-      spl  <- spl  %>% select(gene = all_of(gene_col_spl), drop_splicing)
-      mae  <- mae  %>% select(gene = all_of(gene_col_mae), drop_mae)
+      # ===== SPLICING =====
+      if(nrow(spl) > 0){
+        
+        spl <- spl %>%
+          mutate(drop_splicing = TRUE)
+        
+        gene_col_spl <- if("gene_name" %in% colnames(spl)){
+          "gene_name"
+        } else {
+          "hgncSymbol"
+        }
+        
+        spl <- spl %>%
+          select(gene = all_of(gene_col_spl), drop_splicing)
+        
+      } else {
+        
+        spl <- data.frame(
+          gene = character(),
+          drop_splicing = logical()
+        )
+      }
       
+      # ===== MAE =====
+      if(nrow(mae) > 0){
+        
+        mae <- mae %>%
+          mutate(drop_mae = TRUE)
+        
+        gene_col_mae <- if("gene_name" %in% colnames(mae)){
+          "gene_name"
+        } else {
+          "hgncSymbol"
+        }
+        
+        mae <- mae %>%
+          select(gene = all_of(gene_col_mae), drop_mae)
+        
+      } else {
+        
+        mae <- data.frame(
+          gene = character(),
+          drop_mae = logical()
+        )
+      }
+      
+      # ===== MERGE =====
       df <- full_join(expr, spl, by="gene") %>%
         full_join(mae, by="gene") %>%
         mutate(across(starts_with("drop"), ~replace_na(., FALSE)))
@@ -758,6 +846,26 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
       if(nzchar(input$gene)){
         df <- df %>% filter(grepl(input$gene, gene_name, ignore.case=TRUE))
       }
+      
+      
+      # ===== DROP FILTERS =====
+      
+      if(length(input$drop_filters) > 0){
+        
+        if("expr" %in% input$drop_filters){
+          df <- df %>% filter(drop_expr == TRUE)
+        }
+        
+        if("splicing" %in% input$drop_filters){
+          df <- df %>% filter(drop_splicing == TRUE)
+        }
+        
+        if("mae" %in% input$drop_filters){
+          df <- df %>% filter(drop_mae == TRUE)
+        }
+        
+      }
+      
       
       # ===== HIDDEN COLUMN =====
       df$gene_hidden <- df$gene_name

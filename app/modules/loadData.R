@@ -384,7 +384,7 @@ loadServer <- function(id){
         tags$b("Required columns:"),
         tags$pre("hgncSymbol	geneID	sampleID	pValue	padjust	zScore	l2fc	rawcounts	meanRawcounts	normcounts	meanCorrected	theta	aberrant	AberrantBySample	AberrantByGene	padj_rank	foldChange"),
         tags$b("Example:"),
-        tags$pre("RPL3P4	ENSG00000232573	ND0013	5.47792538302315E-12	8.59402812907001E-07	-8.5	-1.39	153	3809.48	1146.46	3015.01	92.13	TRUE	3	1	1	0.38"),
+        tags$pre("RPL3P4	ENSG00000232573	sample1	5.47792538302315E-12	8.59402812907001E-07	-8.5	-1.39	153	3809.48	1146.46	3015.01	92.13	TRUE	3	1	1	0.38"),
         easyClose=TRUE
       ))
     })
@@ -396,7 +396,7 @@ loadServer <- function(id){
         tags$b("Required columns:"),
         tags$pre("seqnames	start	end	width	strand	sampleID	hgncSymbol	type	pValue	padjust	psiValue	deltaPsi	counts	totalCounts	meanCounts	meanTotalCounts	nonsplitCounts	nonsplitProportion	nonsplitProportion_99quantile	annotatedJunction	pValueGene	padjustGene	potentialImpact	causesFrameshift	UTR_overlap	blacklist"),
         tags$b("Example:"),
-        tags$pre("IGHG2	jaccard	1.2962E-15	3.2391E-11	0.6	-0.38	58	96	1485.97	1504.89	3	0.03	0.11	both	3.8886E-15	1.11E-11	annotatedIntron_reducedUsage	unlikely	no	TRUE"),
+        tags$pre("1	1696886	1709727	12842	-	sample1	NADK	jaccard	3.0137e-10	2.6543e-06	0.22	0.19	44	201	8.37	395.7	0	0	0.02	start	4.822e-09	4.845e-06	exonElongation	likely	5'-UTR	TRUE"),
         easyClose=TRUE
       ))
     })
@@ -408,7 +408,7 @@ loadServer <- function(id){
         tags$b("Required columns:"),
         tags$pre("gene_name	ID	contig	position	variantID	refAllele	altAllele	refCount	altCount	totalCount	pvalue	padj	log2FC	altRatio	AF	AF_afr	AF_amr	AF_eas	AF_nfe	MAX_AF	rare	gene_type	other_names	N_var	cohort_freq	MAE	MAE_ALT"),
         tags$b("Example:"),
-        tags$pre("HLA-A	ND0013_ND0013--ND0013	chr6	29912108	rs2231095	G	C	9	3994	4003	2.49631997819451E-41	6.74440536717421E-39	8.93119194898805	0.998	0.47	0.48	0.44	0.44	0.44	0.48	FALSE	protein_coding		1	0.25	TRUE	TRUE"),
+        tags$pre("HLA-A	sample1	chr6	29912108	rs2231095	G	C	9	3994	4003	2.49631997819451E-41	6.74440536717421E-39	8.93119194898805	0.998	0.47	0.48	0.44	0.44	0.44	0.48	FALSE	protein_coding		1	0.25	TRUE	TRUE"),
         easyClose=TRUE
       ))
     })

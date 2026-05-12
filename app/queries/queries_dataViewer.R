@@ -272,17 +272,45 @@ get_rna <- function(pool){
 # =====================
 # DROP
 # =====================
+
 get_drop_expr <- function(pool){
-  df <- dbGetQuery(pool, "SELECT * FROM read_parquet('../data/drop/expression*.parquet')")
-  return(df)
+  
+  files <- Sys.glob("../data/drop/expression*.parquet")
+  
+  if(length(files) == 0){
+    return(data.frame())
+  }
+  
+  dbGetQuery(
+    pool,
+    "SELECT * FROM read_parquet('../data/drop/expression*.parquet')"
+  )
 }
 
 get_drop_splicing <- function(pool){
-  df <- dbGetQuery(pool, "SELECT * FROM read_parquet('../data/drop/splicing*.parquet')")
-  return(df)
+  
+  files <- Sys.glob("../data/drop/splicing*.parquet")
+  
+  if(length(files) == 0){
+    return(data.frame())
+  }
+  
+  dbGetQuery(
+    pool,
+    "SELECT * FROM read_parquet('../data/drop/splicing*.parquet')"
+  )
 }
 
 get_drop_mae <- function(pool){
-  df <- dbGetQuery(pool, "SELECT * FROM read_parquet('../data/drop/mae*.parquet')")
-  return(df)
+  
+  files <- Sys.glob("../data/drop/mae*.parquet")
+  
+  if(length(files) == 0){
+    return(data.frame())
+  }
+  
+  dbGetQuery(
+    pool,
+    "SELECT * FROM read_parquet('../data/drop/mae*.parquet')"
+  )
 }

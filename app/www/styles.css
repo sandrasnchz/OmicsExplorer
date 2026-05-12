@@ -654,3 +654,21 @@ table.dataTable th.inheritance-col {
   padding: 4px 8px !important;
   text-align: center;
 }
+
+
+/* =========================
+   OmicsExplorer switch
+========================= */
+
+.omics-switch .pretty.p-switch.p-fill input:checked ~ .state:before {
+  background-color: #8b1e5b !important;
+  border-color: #8b1e5b !important;
+}
+
+.omics-switch .pretty.p-switch .state:after {
+  background-color: white !important;
+}
+
+.omics-switch .state label {
+  font-weight: 700 !important;
+}

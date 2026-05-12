@@ -1,5 +1,6 @@
 library(shiny)
 library(shinycssloaders)
+library(shinyWidgets)
 library(DT)
 library(DBI)
 library(dplyr)
@@ -36,6 +37,26 @@ dataViewerUI <- function(id){
                                                     value = 0.05, step = 0.01)
                                  ),
                                  column(3,
+                                        sliderInput(
+                                          ns("dp"),
+                                          "Min DP:",
+                                          min = 0,
+                                          max = 100,
+                                          value = c(10, 100),
+                                          step = 1
+                                        )
+                                 ),
+                                 column(3,
+                                        sliderInput(
+                                          ns("gq"),
+                                          "Min GQ:",
+                                          min = 0,
+                                          max = 100,
+                                          value = c(90, 100),
+                                          step = 1
+                                        )
+                                 ),
+                                 column(3,
                                         checkboxGroupInput(ns("impact"), "Impact:",
                                                            choices = c("HIGH","MODERATE","LOW","MODIFIER"),
                                                            selected = c("HIGH","MODERATE","LOW","MODIFIER"))
@@ -43,7 +64,7 @@ dataViewerUI <- function(id){
                                  column(3,
                                         checkboxGroupInput(ns("source"), "Source:",
                                                            choices = c("WES","WGS","BOTH"),
-                                                           selected = c("BOTH"))
+                                                           selected = c("WES","WGS","BOTH"))
                                  ),
                                  column(3,
                                         checkboxGroupInput(ns("inheritance"), "Inheritance:",
@@ -53,15 +74,33 @@ dataViewerUI <- function(id){
                                ),
                                
                                fluidRow(
-                                 column(4,
-                                        selectInput(ns("consequence"), "Consequence:",
-                                                    choices = c("ALL",
-                                                                "missense_variant",
-                                                                "stop_gained",
-                                                                "frameshift_variant",
-                                                                "splice_region_variant"),
-                                                    selected = "ALL")
+                                 
+                                 column(3,
+                                        div(
+                                          class = "omics-switch",
+                                          
+                                          prettySwitch(
+                                            inputId = ns("hide_intergenic"),
+                                            label = "Hide intergenic variants",
+                                            value = TRUE,
+                                            fill = TRUE
+                                          )
+                                        )
                                  ),
+                                 column(
+                                   3,
+                                   div(
+                                     class = "omics-switch",
+                                     
+                                     prettySwitch(
+                                       inputId = ns("only_omim"),
+                                       label = "Only OMIM genes",
+                                       value = FALSE,
+                                       fill = TRUE
+                                     )
+                                   )
+                                 ),
+                                 
                                  column(4,
                                         selectInput(ns("variant_class"), "Variant class:",
                                                     choices = c("ALL","SNV","insertion","deletion"),
@@ -137,20 +176,21 @@ dataViewerServer <- function(id, pool, selected_gene){
       spl  <- get_drop_splicing(pool)
       mae  <- get_drop_mae(pool)
       
-      # ===== EXPRESSION =====
+      # =====================
+      # EXPRESSION
+      # =====================
+      
       if(nrow(expr) > 0){
         
-        expr <- expr %>%
-          mutate(drop_expr = TRUE)
-        
-        gene_col_expr <- if("gene_name" %in% colnames(expr)){
-          "gene_name"
-        } else {
-          "hgncSymbol"
-        }
+        gene_col_expr <- if("gene_name" %in% colnames(expr)) "gene_name" else "hgncSymbol"
         
         expr <- expr %>%
-          select(gene = all_of(gene_col_expr), drop_expr)
+          mutate(drop_expr = TRUE) %>%
+          distinct(.data[[gene_col_expr]], .keep_all = TRUE) %>%
+          select(
+            gene = all_of(gene_col_expr),
+            drop_expr
+          )
         
       } else {
         
@@ -160,20 +200,21 @@ dataViewerServer <- function(id, pool, selected_gene){
         )
       }
       
-      # ===== SPLICING =====
+      # =====================
+      # SPLICING
+      # =====================
+      
       if(nrow(spl) > 0){
         
-        spl <- spl %>%
-          mutate(drop_splicing = TRUE)
-        
-        gene_col_spl <- if("gene_name" %in% colnames(spl)){
-          "gene_name"
-        } else {
-          "hgncSymbol"
-        }
+        gene_col_spl <- if("gene_name" %in% colnames(spl)) "gene_name" else "hgncSymbol"
         
         spl <- spl %>%
-          select(gene = all_of(gene_col_spl), drop_splicing)
+          mutate(drop_splicing = TRUE) %>%
+          distinct(.data[[gene_col_spl]], .keep_all = TRUE) %>%
+          select(
+            gene = all_of(gene_col_spl),
+            drop_splicing
+          )
         
       } else {
         
@@ -183,20 +224,21 @@ dataViewerServer <- function(id, pool, selected_gene){
         )
       }
       
-      # ===== MAE =====
+      # =====================
+      # MAE
+      # =====================
+      
       if(nrow(mae) > 0){
         
-        mae <- mae %>%
-          mutate(drop_mae = TRUE)
-        
-        gene_col_mae <- if("gene_name" %in% colnames(mae)){
-          "gene_name"
-        } else {
-          "hgncSymbol"
-        }
+        gene_col_mae <- if("gene_name" %in% colnames(mae)) "gene_name" else "hgncSymbol"
         
         mae <- mae %>%
-          select(gene = all_of(gene_col_mae), drop_mae)
+          mutate(drop_mae = TRUE) %>%
+          distinct(.data[[gene_col_mae]], .keep_all = TRUE) %>%
+          select(
+            gene = all_of(gene_col_mae),
+            drop_mae
+          )
         
       } else {
         
@@ -206,10 +248,15 @@ dataViewerServer <- function(id, pool, selected_gene){
         )
       }
       
-      # ===== MERGE =====
-      df <- full_join(expr, spl, by="gene") %>%
-        full_join(mae, by="gene") %>%
-        mutate(across(starts_with("drop"), ~replace_na(., FALSE)))
+      # =====================
+      # JOIN
+      # =====================
+      
+      df <- full_join(expr, spl, by = "gene") %>%
+        full_join(mae, by = "gene") %>%
+        mutate(
+          across(starts_with("drop"), ~replace_na(., FALSE))
+        )
       
       return(df)
     }
@@ -385,14 +432,29 @@ dataViewerServer <- function(id, pool, selected_gene){
         
         # ===== FILTROS =====
         if(!is.null(selected_gene()) && selected_gene() != ""){
-          df <- df %>% filter(grepl(selected_gene(), SYMBOL, ignore.case = TRUE))
+          df <- df %>% filter(toupper(SYMBOL) == toupper(selected_gene()))
         }
         
         if(nzchar(input$gene)){
-          df <- df %>% filter(grepl(input$gene, SYMBOL, ignore.case = TRUE))
+          df <- df %>% filter(toupper(SYMBOL) == toupper(input$gene))
         }
         
-        df <- df %>% filter(is.na(MAX_AF) | MAX_AF <= input$af)
+        df <- df %>%
+          filter(is.na(MAX_AF) | MAX_AF <= input$af)
+        
+        df <- df %>%
+          filter(
+            is.na(CHILD_DP) |
+              (CHILD_DP >= input$dp[1] &
+                 CHILD_DP <= input$dp[2])
+          )
+        
+        df <- df %>%
+          filter(
+            is.na(CHILD_GQ) |
+              (CHILD_GQ >= input$gq[1] &
+                 CHILD_GQ <= input$gq[2])
+          )
         
         if(length(input$impact) > 0){
           df <- df %>% filter(IMPACT %in% input$impact)
@@ -406,8 +468,21 @@ dataViewerServer <- function(id, pool, selected_gene){
           df <- df %>% filter(inheritance_type %in% input$inheritance)
         }
         
-        if(input$consequence != "ALL"){
-          df <- df %>% filter(grepl(input$consequence, Consequence, ignore.case = TRUE))
+        if(input$hide_intergenic){
+          df <- df %>%
+            filter(
+              !grepl("intergenic_variant", Consequence, ignore.case = TRUE)
+            )
+        }
+        
+        if(input$only_omim){
+          df <- df %>%
+            filter(
+              !is.na(OMIM_id) &
+                OMIM_id != "" &
+                OMIM_id != "." &
+                OMIM_id != "-"
+            )
         }
         
         if(input$variant_class != "ALL"){
@@ -840,11 +915,11 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
       
       # ===== FILTROS =====
       if(!is.null(selected_gene()) && selected_gene()!=""){
-        df <- df %>% filter(grepl(selected_gene(), gene_name, ignore.case=TRUE))
+        df <- df %>% filter(toupper(gene_name) == toupper(selected_gene()))
       }
       
       if(nzchar(input$gene)){
-        df <- df %>% filter(grepl(input$gene, gene_name, ignore.case=TRUE))
+        df <- df %>% filter(toupper(gene_name) == toupper(input$gene))
       }
       
       

@@ -497,7 +497,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         cols_to_show <- c(
           "ID","CHROM","POS","REF","ALT","FILTER",
           "CHILD_GT_N","CHILD_DP","CHILD_AD","CHILD_GQ",
-          "SYMBOL","Gene",
+          "SYMBOL","Gene","ENSP",
           "Consequence","IMPACT","MAX_AF","VARIANT_CLASS",
           "SIFT_pred", "Polyphen2_HVAR_pred",
           "source","inheritance_type","inheritance"
@@ -515,6 +515,7 @@ dataViewerServer <- function(id, pool, selected_gene){
             GQ = CHILD_GQ,
             gene_name = SYMBOL,
             gene_id   = Gene,
+            transcript_id = ENSP,
             consequence = Consequence,
             impact      = IMPACT,
             max_AF      = MAX_AF,

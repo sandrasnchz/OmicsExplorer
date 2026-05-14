@@ -161,14 +161,21 @@ body {
 }
 
 .section-title-big {
-  background: #8b1e5b;
-  color: white;
-  padding: 10px 25px;
-  border-radius: 25px;
-  font-weight: 600;
   display: block;
   width: fit-content;
-  margin: 0 auto;
+
+  margin: 0 auto 18px auto;
+  padding-bottom: 6px;
+
+  background: transparent;
+  color: #8b1e5b;
+
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+
+  border-radius: 0;
+  border-bottom: 3px solid #8b1e5b;
 }
 
 /* INPUTS */
@@ -360,7 +367,7 @@ table.dataTable.no-footer {
 
 table.dataTable td.inheritance-col,
 table.dataTable th.inheritance-col {
-  max-width: 280px;
+  max-width: 150px;
   min-width: 220px;
   white-space: normal !important;
   word-break: break-word;

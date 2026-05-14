@@ -58,73 +58,98 @@ coverageViewerServer <- function(id){
       rna_path <- tail(files[grepl("^RNA.*\\.bw$", basename(files))], 1)
       
       # -------------------------
-      # VALIDACIÓN 
+      # TRACKS DINÁMICOS
       # -------------------------
-      if (length(wes_path) == 0 || length(wgs_path) == 0 || length(rna_path) == 0) {
-        showNotification("Missing coverage files", type = "error")
-        return()
+      tracks <- c()
+      
+      if(length(wgs_path) > 0){
+        
+        wgs_url <- paste0("coverage/", basename(wgs_path))
+        
+        tracks <- c(
+          tracks,
+          paste0("
+      {
+        name:'WGS',
+        type:'wig',
+        format:'bigwig',
+        url:'", wgs_url, "',
+        color:'black'
+      }")
+        )
+      }
+      
+      if(length(wes_path) > 0){
+        
+        wes_url <- paste0("coverage/", basename(wes_path))
+        
+        tracks <- c(
+          tracks,
+          paste0("
+      {
+        name:'WES',
+        type:'wig',
+        format:'bigwig',
+        url:'", wes_url, "',
+        color:'blue'
+      }")
+        )
+      }
+      
+      if(length(rna_path) > 0){
+        
+        rna_url <- paste0("coverage/", basename(rna_path))
+        
+        tracks <- c(
+          tracks,
+          paste0("
+      {
+        name:'RNA',
+        type:'wig',
+        format:'bigwig',
+        url:'", rna_url, "',
+        color:'red'
+      }")
+        )
       }
       
       # -------------------------
-      # URLs 
+      # VALIDACIÓN
       # -------------------------
-      wes_url <- paste0("coverage/", basename(wes_path))
-      wgs_url <- paste0("coverage/", basename(wgs_path))
-      rna_url <- paste0("coverage/", basename(rna_path))
+      if(length(tracks) == 0){
+        showNotification("No coverage files found", type = "error")
+        return()
+      }
       
       # -------------------------
       # HTML IGV
       # -------------------------
       html <- paste0(
         "<!DOCTYPE html>
-<html>
-<head>
-<script src='https://cdn.jsdelivr.net/npm/igv@2.15.4/dist/igv.min.js'></script>
-</head>
-<body>
-
-<div id='igvDiv' style='height:600px;'></div>
-
-<script>
-
-var options = {
-  genome: 'hg19',
-  locus: '", input$region, "',
-  tracks: [
-
-    {
-      name:'WGS',
-      type:'wig',
-      format:'bigwig',
-      url:'", wgs_url, "',
-      color:'black'
-    },
-
-    {
-      name:'WES',
-      type:'wig',
-      format:'bigwig',
-      url:'", wes_url, "',
-      color:'blue'
-    },
-
-    {
-      name:'RNA',
-      type:'wig',
-      format:'bigwig',
-      url:'", rna_url, "',
-      color:'red'
-    }
-
-  ]
-};
-
-igv.createBrowser(document.getElementById('igvDiv'), options);
-
-</script>
-
-</body>
-</html>"
+          <html>
+          <head>
+          <script src='https://cdn.jsdelivr.net/npm/igv@2.15.4/dist/igv.min.js'></script>
+          </head>
+          <body>
+          
+          <div id='igvDiv' style='height:600px;'></div>
+          
+          <script>
+          
+          var options = {
+            genome: 'hg19',
+            locus: '", input$region, "',
+            tracks: [
+              ", paste(tracks, collapse = ","), "
+            ]
+          };
+          
+          igv.createBrowser(document.getElementById('igvDiv'), options);
+          
+          </script>
+          
+          </body>
+          </html>"
       )
       
       writeLines(html, "www/tmp_igv.html")

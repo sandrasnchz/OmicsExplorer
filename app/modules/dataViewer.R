@@ -66,10 +66,14 @@ dataViewerUI <- function(id){
                                                            choices = c("WES","WGS","BOTH"),
                                                            selected = c("WES","WGS","BOTH"))
                                  ),
-                                 column(3,
-                                        checkboxGroupInput(ns("inheritance"), "Inheritance:",
-                                                           choices = c("de_novo","recessive","dominant","other"),
-                                                           selected = c("de_novo","recessive","dominant","other"))
+                                 column(
+                                   3,
+                                   checkboxGroupInput(
+                                     ns("inheritance_source"),
+                                     "Inheritance source:",
+                                     choices = c("AR","AD","XR","XD","MT"),
+                                     selected = c("AR","AD","XR","XD","MT")
+                                   )
                                  )
                                ),
                                
@@ -101,10 +105,14 @@ dataViewerUI <- function(id){
                                    )
                                  ),
                                  
-                                 column(4,
-                                        selectInput(ns("variant_class"), "Variant class:",
-                                                    choices = c("ALL","SNV","insertion","deletion"),
-                                                    selected = "ALL")
+                                 column(
+                                   4,
+                                   checkboxGroupInput(
+                                     ns("variant_class"),
+                                     "Variant class:",
+                                     choices = c("SNV","insertion","deletion"),
+                                     selected = c("SNV","insertion","deletion")
+                                   )
                                  )
                                )
                            ),
@@ -464,8 +472,9 @@ dataViewerServer <- function(id, pool, selected_gene){
           df <- df %>% filter(source %in% input$source)
         }
         
-        if(length(input$inheritance) > 0){
-          df <- df %>% filter(inheritance_type %in% input$inheritance)
+        if(length(input$inheritance_source) > 0){
+          df <- df %>%
+            filter(inheritance_source %in% input$inheritance_source)
         }
         
         if(input$hide_intergenic){
@@ -485,8 +494,9 @@ dataViewerServer <- function(id, pool, selected_gene){
             )
         }
         
-        if(input$variant_class != "ALL"){
-          df <- df %>% filter(VARIANT_CLASS == input$variant_class)
+        if(length(input$variant_class) > 0){
+          df <- df %>%
+            filter(VARIANT_CLASS %in% input$variant_class)
         }
         
         if(nrow(df) == 0){
@@ -499,8 +509,10 @@ dataViewerServer <- function(id, pool, selected_gene){
           "CHILD_GT_N","CHILD_DP","CHILD_AD","CHILD_GQ",
           "SYMBOL","Gene","ENSP",
           "Consequence","IMPACT","MAX_AF","VARIANT_CLASS",
+          "clinvar_trait",
+          "clinvar_id",
           "SIFT_pred", "Polyphen2_HVAR_pred",
-          "source","inheritance_type","inheritance"
+          "source","inheritance_source","inheritance_type","inheritance"
         )
         
         cols_to_show <- intersect(cols_to_show, colnames(df))
@@ -523,6 +535,21 @@ dataViewerServer <- function(id, pool, selected_gene){
           ) %>%
           mutate(inheritance = format_inheritance_display(inheritance))
         
+        df$impact <- factor(
+          df$impact,
+          levels = c("HIGH", "MODERATE", "LOW", "MODIFIER"),
+          ordered = TRUE
+        )
+        
+        df <- df %>%
+          arrange(impact)
+        
+        showNotification(
+          "By default, variants are ordered by impact severity: HIGH → MODERATE → LOW → MODIFIER.",
+          type = "default",
+          duration = 5
+        )
+        
         # =====================
         # DATATABLE
         # =====================
@@ -543,7 +570,7 @@ dataViewerServer <- function(id, pool, selected_gene){
             columnDefs = list(
               list(
                 targets = which(colnames(df) == "inheritance") - 1,
-                width = "280px",
+                width = "100px",
                 className = "inheritance-col"
               )
             )

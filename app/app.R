@@ -1,5 +1,6 @@
 library(shiny)
 options(shiny.maxRequestSize = 20000 * 1024^2)
+
 library(shinyjs)
 library(DBI)
 library(duckdb)
@@ -8,14 +9,16 @@ library(pool)
 # =========================
 # CONNECTION TO DATABASE
 # =========================
+
 pool <- dbPool(
   drv = duckdb::duckdb(),
   dbdir = normalizePath("../db/genomic.duckdb")
 )
 
 # =========================
-# SCRIPTS
+# QUERY SCRIPTS
 # =========================
+
 source("queries/queries_dataViewer.R")
 source("queries/queries_geneViewer.R")
 source("queries/queries_QC.R")
@@ -23,6 +26,7 @@ source("queries/queries_QC.R")
 # =========================
 # MODULES
 # =========================
+
 source("modules/home.R")
 source("modules/introduction.R")
 source("modules/loadData.R")
@@ -30,10 +34,12 @@ source("modules/dataViewer.R")
 source("modules/geneViewer.R")
 source("modules/QCviewer.R")
 source("modules/coverageViewer.R")
+source("modules/plots.R")
 
 # =========================
-# SERVIR COVERAGE DESDE SHINY
+# SERVE COVERAGE FILES
 # =========================
+
 addResourcePath(
   "coverage",
   normalizePath("../data/coverage")
@@ -42,72 +48,133 @@ addResourcePath(
 # =========================
 # UI
 # =========================
+
 ui <- fluidPage(
   
   useShinyjs(),
   
   tags$head(
-    tags$link(rel="stylesheet", type="text/css", href="styles.css"),
+    
+    tags$link(
+      rel = "stylesheet",
+      type = "text/css",
+      href = "styles.css"
+    ),
     
     tags$script(HTML("
+      
       function changePage(page){
-        Shiny.setInputValue('menu', page, {priority: 'event'});
+
+        Shiny.setInputValue(
+          'menu',
+          page,
+          {priority: 'event'}
+        );
 
         document.querySelectorAll('.menu-item').forEach(el => {
           el.classList.remove('active');
         });
 
-        document.getElementById('btn_' + page).classList.add('active');
+        document
+          .getElementById('btn_' + page)
+          .classList.add('active');
       }
-      
       
     "))
   ),
   
-  div(class="app-container",
+  div(
+    class = "app-container",
+    
+    # =====================
+    # SIDEBAR
+    # =====================
+    
+    div(
+      class = "sidebar",
       
-      # SIDEBAR
-      div(class="sidebar",
-          
-          div(class="logo-container",
-              img(src = "logo1.png", class = "logo-img")),
-          
-          div(id="btn_home", class="menu-item active",
-              onclick="changePage('home')", "🏠 Home"),
-          
-          div(id="btn_intro", class="menu-item",
-              onclick="changePage('intro')", "📄 Introduction"),
-          
-          div(id="btn_load", class="menu-item",
-              onclick="changePage('load')", "📥 Load Data"),
-          
-          div(id="btn_viewer", class="menu-item",
-              onclick="changePage('viewer')", "🔎 Data Viewer"),
-          
-          div(id="btn_gene", class="menu-item",
-              onclick="changePage('gene')", "🧬 Gene Viewer"),
-          
-          div(id="btn_qc", class="menu-item",
-              onclick="changePage('qc')", "📊 QC Viewer"),
-          
-          div(id="btn_coverage", class="menu-item",
-              onclick="changePage('coverage')", "📈 Coverage Viewer"),
-          
-          div(id="btn_plots", class="menu-item",
-              onclick="changePage('plots')", "📉 Plots")
+      div(
+        class = "logo-container",
+        img(src = "logo1.png", class = "logo-img")
       ),
       
-      # MAIN
-      div(class="main",
-          uiOutput("page")
+      div(
+        id = "btn_home",
+        class = "menu-item active",
+        onclick = "changePage('home')",
+        "🏠 Home"
+      ),
+      
+      div(
+        id = "btn_intro",
+        class = "menu-item",
+        onclick = "changePage('intro')",
+        "📄 Introduction"
+      ),
+      
+      div(
+        id = "btn_load",
+        class = "menu-item",
+        onclick = "changePage('load')",
+        "📥 Load Data"
+      ),
+      
+      div(
+        id = "btn_viewer",
+        class = "menu-item",
+        onclick = "changePage('viewer')",
+        "🔎 Data Viewer"
+      ),
+      
+      div(
+        id = "btn_gene",
+        class = "menu-item",
+        onclick = "changePage('gene')",
+        "🧬 Gene Viewer"
+      ),
+      
+      div(
+        id = "btn_qc",
+        class = "menu-item",
+        onclick = "changePage('qc')",
+        "📊 QC Viewer"
+      ),
+      
+      div(
+        id = "btn_coverage",
+        class = "menu-item",
+        onclick = "changePage('coverage')",
+        "📈 Coverage Viewer"
+      ),
+      
+      div(
+        id = "btn_plots",
+        class = "menu-item",
+        onclick = "changePage('plots')",
+        "📉 Plots"
       )
+    ),
+    
+    # =====================
+    # MAIN PANEL
+    # =====================
+    
+    div(
+      class = "main",
+      uiOutput("page")
+    )
   )
 )
 
 # =========================
 # SERVER
 # =========================
+
 server <- function(input, output, session){
+  
+  # =====================
+  # CURRENT PAGE
+  # =====================
   
   current_page <- reactiveVal("home")
   
@@ -115,41 +182,80 @@ server <- function(input, output, session){
     current_page(input$menu)
   })
   
-  # =========================
+  # =====================
+  # SHARED REACTIVES
+  # =====================
+  
+  selected_gene <- reactiveVal(NULL)
+  
+  # =====================
   # PAGE RENDER
-  # =========================
+  # =====================
+  
   output$page <- renderUI({
     
-    switch(current_page(),
-           
-           "home" = homeUI("home"),
-           "intro" = introUI("intro"),
-           "load" = loadUI("loadData"),
-           "viewer" = dataViewerUI("viewer"),
-           "gene" = geneViewerUI("gene"),
-           "qc" = QCviewerUI("qc"),
-           "coverage" = coverageViewerUI("coverage"),
-           
-           "plots" = div("Plots")
+    switch(
+      current_page(),
+      
+      "home" = homeUI("home"),
+      
+      "intro" = introUI("intro"),
+      
+      "load" = loadUI("loadData"),
+      
+      "viewer" = dataViewerUI("viewer"),
+      
+      "gene" = geneViewerUI("gene"),
+      
+      "qc" = QCviewerUI("qc"),
+      
+      "coverage" = coverageViewerUI("coverage"),
+      
+      "plots" = plotsUI("plots")
     )
+    
   })
-
-  # =========================
-  # ACTIVE MODULES
-  # =========================
-  selected_gene <- reactiveVal(NULL)
-  # --------------------------------
-  homeServer("home")
-  introServer("intro")
-  loadServer("loadData")
-  dataViewerServer("viewer", pool, selected_gene)
-  geneViewerServer("gene", pool, selected_gene)
-  QCviewerServer("qc", pool)
-  coverageViewerServer("coverage")
   
-  # =========================
-  # CLOSE DB PROPERLY
-  # =========================
+  # =====================
+  # MODULE SERVERS
+  # =====================
+  
+  homeServer("home")
+  
+  introServer("intro")
+  
+  loadServer("loadData")
+  
+  dataViewerServer(
+    "viewer",
+    pool,
+    selected_gene
+  )
+  
+  geneViewerServer(
+    "gene",
+    pool,
+    selected_gene
+  )
+  
+  QCviewerServer(
+    "qc",
+    pool
+  )
+  
+  coverageViewerServer(
+    "coverage"
+  )
+  
+  plotsServer(
+    "plots",
+    pool
+  )
+  
+  # =====================
+  # CLOSE DB CLEANLY
+  # =====================
+  
   session$onSessionEnded(function(){
     poolClose(pool)
   })
@@ -158,4 +264,5 @@ server <- function(input, output, session){
 # =========================
 # RUN APP
 # =========================
+
 shinyApp(ui, server)

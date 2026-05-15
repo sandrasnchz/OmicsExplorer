@@ -481,6 +481,76 @@ table.dataTable th.inheritance-col {
   margin-bottom: 15px;
 }
 
+.download-box {
+  background: #eeeeee;
+  border-radius: 16px;
+  margin-top: 18px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.download-box .form-group {
+  margin: 0;
+}
+
+.download-box label {
+  color: #333;
+  font-weight: 600;
+}
+
+.download-box .radio-inline {
+  color: #555;
+  font-weight: 600;
+}
+
+.omics-download-btn,
+.omics-download-btn:visited,
+.omics-download-btn:focus {
+  background-color: #8b1e5b !important;
+  border: none !important;
+  color: white !important;
+  border-radius: 12px !important;
+  padding: 8px 14px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+.omics-download-btn:hover {
+  background-color: #a8326f !important;
+  color: white !important;
+}
+
+.impact-badge {
+  display: inline-block;
+  min-width: 82px;
+  padding: 4px 8px;
+  border-radius: 10px;
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.impact-high {
+  background: #c0392b;
+}
+
+.impact-moderate {
+  background: #f39c12;
+}
+
+.impact-low {
+  background: #2e8b57;
+}
+
+.impact-modifier {
+  background: #7f8c8d;
+}
+
 .nav-tabs {
   border-bottom: none;
 }

@@ -13,6 +13,58 @@ get_variants_with_inheritance <- function(pool){
   
   has_wes <- any(grepl("wes", files, ignore.case = TRUE))
   has_wgs <- any(grepl("wgs", files, ignore.case = TRUE))
+
+  single_source_query <- function(pattern, source){
+    sprintf("
+      WITH normalized AS (
+        SELECT *,
+
+          CASE
+            WHEN REPLACE(CHILD_GT, '|', '/') IN ('1/0','0/1') THEN '0/1'
+            ELSE REPLACE(CHILD_GT, '|', '/')
+          END AS CHILD_GT_N,
+
+          CASE
+            WHEN REPLACE(PARENT1_GT, '|', '/') IN ('1/0','0/1') THEN '0/1'
+            ELSE REPLACE(PARENT1_GT, '|', '/')
+          END AS P1_GT_N,
+
+          CASE
+            WHEN REPLACE(PARENT2_GT, '|', '/') IN ('1/0','0/1') THEN '0/1'
+            ELSE REPLACE(PARENT2_GT, '|', '/')
+          END AS P2_GT_N
+
+        FROM read_parquet('%s')
+      )
+
+      SELECT
+        *,
+        '%s' AS source,
+
+        CASE
+          WHEN inheritance_source IN ('AD','XD') AND CHILD_GT_N = '0/1' AND P1_GT_N = '0/0' AND P2_GT_N = '0/0' THEN 'de_novo'
+          WHEN inheritance_source = 'AR' AND CHILD_GT_N = '1/1' AND P1_GT_N = '0/1' AND P2_GT_N = '0/1' THEN 'recessive'
+          WHEN inheritance_source != 'AR' AND CHILD_GT_N = '0/1' AND (P1_GT_N = '0/1' OR P2_GT_N = '0/1') THEN 'dominant'
+          ELSE ''
+        END AS inheritance_type,
+
+        CONCAT(
+          CASE
+            WHEN inheritance_source IN ('AD','XD') AND CHILD_GT_N = '0/1' AND P1_GT_N = '0/0' AND P2_GT_N = '0/0' THEN 'de_novo'
+            WHEN inheritance_source = 'AR' AND CHILD_GT_N = '1/1' AND P1_GT_N = '0/1' AND P2_GT_N = '0/1' THEN 'recessive'
+            WHEN inheritance_source != 'AR' AND CHILD_GT_N = '0/1' AND (P1_GT_N = '0/1' OR P2_GT_N = '0/1') THEN 'dominant'
+            ELSE ''
+          END,
+          ' (P1:', P1_GT_N, ' AD:', PARENT1_AD,
+          ' | P2:', P2_GT_N, ' AD:', PARENT2_AD, ')'
+        ) AS inheritance
+
+      FROM (
+        SELECT DISTINCT *
+        FROM normalized
+      )
+    ", pattern, source)
+  }
   
   # =====================
   # WES + WGS
@@ -64,19 +116,19 @@ get_variants_with_inheritance <- function(pool){
         
         -- INHERITANCE TYPE
         CASE
-          WHEN CHILD_GT_N = '0/1' AND P1_GT_N = '0/0' AND P2_GT_N = '0/0' THEN 'de_novo'
-          WHEN CHILD_GT_N = '1/1' AND P1_GT_N = '0/1' AND P2_GT_N = '0/1' THEN 'recessive'
-          WHEN CHILD_GT_N = '0/1' AND (P1_GT_N = '0/1' OR P2_GT_N = '0/1') THEN 'dominant'
-          ELSE 'other'
+          WHEN inheritance_source IN ('AD','XD') AND CHILD_GT_N = '0/1' AND P1_GT_N = '0/0' AND P2_GT_N = '0/0' THEN 'de_novo'
+          WHEN inheritance_source = 'AR' AND CHILD_GT_N = '1/1' AND P1_GT_N = '0/1' AND P2_GT_N = '0/1' THEN 'recessive'
+          WHEN inheritance_source != 'AR' AND CHILD_GT_N = '0/1' AND (P1_GT_N = '0/1' OR P2_GT_N = '0/1') THEN 'dominant'
+          ELSE ''
         END AS inheritance_type,
         
         -- INHERITANCE TEXT
         CONCAT(
           CASE
-            WHEN CHILD_GT_N = '0/1' AND P1_GT_N = '0/0' AND P2_GT_N = '0/0' THEN 'de_novo'
-            WHEN CHILD_GT_N = '1/1' AND P1_GT_N = '0/1' AND P2_GT_N = '0/1' THEN 'recessive'
-            WHEN CHILD_GT_N = '0/1' AND (P1_GT_N = '0/1' OR P2_GT_N = '0/1') THEN 'dominant'
-            ELSE 'other'
+            WHEN inheritance_source IN ('AD','XD') AND CHILD_GT_N = '0/1' AND P1_GT_N = '0/0' AND P2_GT_N = '0/0' THEN 'de_novo'
+            WHEN inheritance_source = 'AR' AND CHILD_GT_N = '1/1' AND P1_GT_N = '0/1' AND P2_GT_N = '0/1' THEN 'recessive'
+            WHEN inheritance_source != 'AR' AND CHILD_GT_N = '0/1' AND (P1_GT_N = '0/1' OR P2_GT_N = '0/1') THEN 'dominant'
+            ELSE ''
           END,
           ' (P1:', P1_GT_N, ' AD:', PARENT1_AD,
           ' | P2:', P2_GT_N, ' AD:', PARENT2_AD, ')'
@@ -89,40 +141,10 @@ get_variants_with_inheritance <- function(pool){
     "
     
   } else if(has_wes){
-    
-    query <- "
-      WITH normalized AS (
-        SELECT *,
-          REPLACE(CHILD_GT,'|','/') AS CHILD_GT_N,
-          REPLACE(PARENT1_GT,'|','/') AS P1_GT_N,
-          REPLACE(PARENT2_GT,'|','/') AS P2_GT_N
-        FROM read_parquet('../data/variants/wes*.parquet')
-      )
-      
-      SELECT *,
-        'WES' AS source
-      FROM (
-        SELECT DISTINCT *
-        FROM normalized
-    "
+    query <- single_source_query("../data/variants/wes*.parquet", "WES")
     
   } else if(has_wgs){
-    
-    query <- "
-      WITH normalized AS (
-        SELECT *,
-          REPLACE(CHILD_GT,'|','/') AS CHILD_GT_N,
-          REPLACE(PARENT1_GT,'|','/') AS P1_GT_N,
-          REPLACE(PARENT2_GT,'|','/') AS P2_GT_N
-        FROM read_parquet('../data/variants/wgs*.parquet')
-      )
-      
-      SELECT *,
-        'WGS' AS source
-      FROM (
-        SELECT DISTINCT *
-        FROM normalized
-    "
+    query <- single_source_query("../data/variants/wgs*.parquet", "WGS")
   }
   
   df <- dbGetQuery(pool, query)

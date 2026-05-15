@@ -88,6 +88,8 @@ loadUI <- function(id){
 # =====================
 loadServer <- function(id){
   moduleServer(id, function(input, output, session){
+
+    `%||%` <- function(a, b) if (is.null(a)) b else a
     
     # -------------------------
     # SAVE PARQUET
@@ -126,6 +128,40 @@ loadServer <- function(id){
           stringsAsFactors=FALSE
         )
       )
+    }
+
+    remove_existing_files <- function(folder, pattern){
+      if(!dir.exists(folder)){
+        return(invisible(character()))
+      }
+
+      existing <- list.files(
+        folder,
+        pattern = pattern,
+        full.names = TRUE,
+        ignore.case = TRUE
+      )
+
+      if(length(existing) == 0){
+        return(invisible(character()))
+      }
+
+      existing_norm <- normalizePath(existing, winslash = "/", mustWork = FALSE)
+
+      for(path in existing){
+        if(file.exists(path)){
+          file.remove(path)
+        }
+      }
+
+      if(nrow(rv$files_info) > 0){
+        rv$files_info <- rv$files_info %>%
+          mutate(path_norm = normalizePath(path, winslash = "/", mustWork = FALSE)) %>%
+          filter(!path_norm %in% existing_norm) %>%
+          select(-path_norm)
+      }
+
+      invisible(existing)
     }
     
     # -------------------------
@@ -257,12 +293,15 @@ loadServer <- function(id){
     # -------------------------
     # GENERIC UPLOAD (TABULAR)
     # -------------------------
-    handle_upload <- function(file_input, folder, prefix, type, source){
+    handle_upload <- function(file_input, folder, prefix, type, source, replace_pattern = NULL){
       
       req(file_input)
       
       tryCatch({
         dt <- fread(file_input$datapath)
+
+        replace_pattern <- replace_pattern %||% paste0("^", prefix, "_.*\\.parquet$")
+        remove_existing_files(folder, replace_pattern)
         
         path <- save_parquet(dt, folder, prefix)
         id <- paste0(prefix, "_", as.integer(Sys.time()))
@@ -270,7 +309,7 @@ loadServer <- function(id){
         add_file(id, file_input$name, type, source, path)
         
         showNotification(
-          paste("Loaded:", file_input$name),
+          paste("Loaded:", file_input$name, "-", nrow(dt), "rows imported"),
           type = "message",
           duration = 3
         )
@@ -283,7 +322,7 @@ loadServer <- function(id){
     # -------------------------
     # COVERAGE UPLOAD (BW)
     # -------------------------
-    handle_bw_upload <- function(file_input, folder, prefix, type, source){
+    handle_bw_upload <- function(file_input, folder, prefix, type, source, replace_pattern = NULL){
       
       req(file_input)
       
@@ -294,6 +333,9 @@ loadServer <- function(id){
         if(!dir.exists(folder)){
           dir.create(folder, recursive = TRUE)
         }
+
+        replace_pattern <- replace_pattern %||% paste0("^", prefix, "_.*\\.[^.]+$")
+        remove_existing_files(folder, replace_pattern)
         
         safe_time <- format(Sys.time(), "%Y%m%d_%H%M%S")
         ext <- tools::file_ext(file_input$name)
@@ -476,6 +518,8 @@ loadServer <- function(id){
         dt_clean <- dt %>%
           rename(tpm = all_of(sample_name)) %>%
           mutate(sample = sample_name)
+
+        remove_existing_files("../data/rnaseq", "^sample_.*\\.parquet$")
         
         path <- save_parquet(dt_clean, "../data/rnaseq", paste0("sample_", sample_name))
         

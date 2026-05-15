@@ -56,15 +56,33 @@ QCviewerServer <- function(id, pool){
     # =====================
     # DATA
     # =====================
+    qc_files <- reactivePoll(
+      intervalMillis = 1000,
+      session = session,
+      checkFunc = function(){
+        files <- Sys.glob("../data/qc/*.parquet")
+        if(length(files) == 0) return("")
+
+        info <- file.info(files)
+        paste(files, info$mtime, info$size, collapse = "|")
+      },
+      valueFunc = function(){
+        Sys.glob("../data/qc/*.parquet")
+      }
+    )
+
     wes <- reactive({
+      qc_files()
       tryCatch({ get_qc_wes(pool) }, error=function(e){ print(e); NULL })
     })
     
     wgs <- reactive({
+      qc_files()
       tryCatch({ get_qc_wgs(pool) }, error=function(e){ print(e); NULL })
     })
     
     combined <- reactive({
+      qc_files()
       tryCatch({ get_qc_combined(pool) }, error=function(e){ print(e); NULL })
     })
     

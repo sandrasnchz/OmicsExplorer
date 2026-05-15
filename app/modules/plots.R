@@ -231,7 +231,6 @@ plotsUI <- function(id){
 plotsServer <- function(id, pool){
   
   moduleServer(id, function(input, output, session){
-    
     # =====================================================
     # EXPRESSION DATA
     # =====================================================
@@ -244,37 +243,49 @@ plotsServer <- function(id, pool){
         return(data.frame())
       }
       
-      drop <- get_drop_expr(pool)
-      
       expr <- rna %>%
         transmute(
-          gene_name,
-          case_expression = as.numeric(tpm),
-          control_min = as.numeric(min_TPM),
-          control_median = as.numeric(median_TPM),
-          control_max = as.numeric(max_TPM)
+          gene_name = toupper(trimws(gene_name)),
+          case_expression = suppressWarnings(as.numeric(tpm)),
+          control_min = suppressWarnings(as.numeric(min_TPM)),
+          control_median = suppressWarnings(as.numeric(median_TPM)),
+          control_max = suppressWarnings(as.numeric(max_TPM))
         )
       
-      if(nrow(drop) > 0){
+      # ============================================
+      # ADD DROP EXPRESSION IF AVAILABLE
+      # ============================================
+      
+      drop <- tryCatch(
+        get_drop_expr(pool),
+        error = function(e) data.frame()
+      )
+      
+      if(nrow(drop) > 0 &&
+         "hgncSymbol" %in% colnames(drop)){
         
         drop_clean <- drop %>%
           transmute(
             gene_name = toupper(trimws(hgncSymbol)),
-            zscore = as.numeric(zScore),
-            padj = as.numeric(padjust),
-            log2fc = as.numeric(l2fc)
+            zscore = suppressWarnings(as.numeric(zScore)),
+            padj = suppressWarnings(as.numeric(padjust)),
+            log2fc = suppressWarnings(as.numeric(l2fc))
           )
         
         expr <- expr %>%
-          mutate(
-            gene_name = toupper(trimws(gene_name))
-          ) %>%
           left_join(drop_clean, by = "gene_name")
+        
+      } else {
+        
+        # crear columnas vacías para evitar errores
+        
+        expr$zscore <- NA
+        expr$padj <- NA
+        expr$log2fc <- NA
       }
       
       expr
     })
-    
     # =====================================================
     # SPLICING DATA
     # =====================================================
@@ -351,39 +362,47 @@ plotsServer <- function(id, pool){
         filter(!is.na(zscore)) %>%
         slice_max(order_by = abs(zscore), n = 20)
       
-      p <- ggplot(df_plot) +
+      validate(
+        need(nrow(df_plot) > 0,
+             "No DROP expression data available")
+      )
+      
+      p <- ggplot(
+        df_plot,
+        aes(y = reorder(gene_name, zscore))
+      ) +
         
-        geom_segment(
+        # control range
+        geom_errorbar(
           aes(
-            x = gene_name,
-            xend = gene_name,
-            y = control_min,
-            yend = control_max
+            xmin = control_min,
+            xmax = control_max
           ),
+          width = 0.3,
           linewidth = 2,
-          alpha = 0.6,
-          color = "#2c7fb8"
+          color = COLOR_BLUE,
+          alpha = 0.6
         ) +
         
+        # control median
         geom_point(
           aes(
-            x = gene_name,
-            y = control_median,
+            x = control_median,
             text = paste0(
               "Gene: ", gene_name,
-              "<br>Median TPM: ",
+              "<br>Control median TPM: ",
               round(control_median, 2)
             )
           ),
-          size = 4,
           shape = 18,
-          color = "#2c7fb8"
+          size = 4,
+          color = COLOR_BLUE
         ) +
         
+        # case expression
         geom_point(
           aes(
-            x = gene_name,
-            y = case_expression,
+            x = case_expression,
             text = paste0(
               "Gene: ", gene_name,
               "<br>Case TPM: ",
@@ -395,10 +414,8 @@ plotsServer <- function(id, pool){
             )
           ),
           size = 5,
-          color = "#8b1e5b"
+          color = COLOR_MAGENTA
         ) +
-        
-        coord_flip() +
         
         theme_bw(base_size = 13) +
         
@@ -406,18 +423,21 @@ plotsServer <- function(id, pool){
           panel.grid.minor = element_blank(),
           
           plot.title = element_text(
-            color = "#8b1e5b",
+            color = COLOR_MAGENTA,
             face = "bold"
           )
         ) +
         
         labs(
           title = "Top aberrantly expressed genes",
-          x = "",
-          y = "TPM"
+          x = "TPM",
+          y = ""
         )
       
-      ggplotly(p, tooltip = "text")
+      ggplotly(
+        p,
+        tooltip = "text"
+      )
     })
     
     # =====================================================

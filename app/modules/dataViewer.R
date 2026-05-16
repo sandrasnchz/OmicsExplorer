@@ -216,7 +216,7 @@ dataViewerUI <- function(id){
                 
                 prettyCheckboxGroup(
                   inputId=ns("de_novo_source"),
-                  label="de novo",
+                  label=" ",
                   choices=c(
                     "AD - de_novo"="AD",
                     "XD - de_novo"="XD"
@@ -336,12 +336,6 @@ dataViewerUI <- function(id){
                     "Aberrant Expression" = "expr",
                     "Aberrant Splicing" = "splicing",
                     "MAE" = "mae"
-                  ),
-                  
-                  selected = c(
-                    "expr",
-                    "splicing",
-                    "mae"
                   ),
                   
                   inline = TRUE,
@@ -520,8 +514,8 @@ dataViewerServer <- function(id, pool, selected_gene){
       paste0(
         "<div class='variant-detail-tabs-scroll'>",
         "<ul class='nav nav-tabs variant-detail-tabs'>",
-        "<li class='nav-item'><a class='nav-link freq-tab' data-target='#geno-detail'>Trio genotypes</a></li>",
-        "<li class='nav-item'><a class='nav-link active freq-tab' data-target='#pop-detail'>Population frequencies</a></li>",
+        "<li class='nav-item'><a class='nav-link active freq-tab' data-target='#geno-detail'>Trio genotypes</a></li>",
+        "<li class='nav-item'><a class='nav-link freq-tab' data-target='#pop-detail'>Population frequencies</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#gnom-detail'>gnomAD frequencies</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#pred-detail'>Predictors</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#trans-detail'>Transcript / Protein</a></li>",
@@ -533,7 +527,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         
         "<div class='tab-content' style='margin-top:10px'>",
         
-        "<div class='tab-pane' id='geno-detail'>",
+        "<div class='tab-pane active' id='geno-detail'>",
         "<table class='table table-sm table-bordered genotype-table'>",
         "<tr><th></th><th>GT</th><th>DP</th><th>AD</th><th>GQ</th></tr>",
         "<tr><td><b>P1</b></td><td>", get_value(row, "PARENT1_GT"), "</td><td>", get_value(row, "PARENT1_DP"), "</td><td>", get_value(row, "PARENT1_AD"), "</td><td>", get_value(row, "PARENT1_GQ"), "</td></tr>",
@@ -542,7 +536,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         "</table>",
         "</div>",
         
-        "<div class='tab-pane active' id='pop-detail'>",
+        "<div class='tab-pane' id='pop-detail'>",
         "AF: ", get_value(row, "AF"), "<br>",
         "AFR: ", get_value(row, "AFR_AF"), "<br>",
         "AMR: ", get_value(row, "AMR_AF"), "<br>",
@@ -1004,8 +998,8 @@ var format = function(rowData){
 
     '<div class=\"variant-detail-tabs-scroll\">' +
     '<ul class=\"nav nav-tabs variant-detail-tabs\">' +
-      '<li class=\"nav-item\"><a class=\"nav-link freq-tab\" data-target=\"#geno-'+uid+'\">Trio genotypes</a></li>' +
-      '<li class=\"nav-item\"><a class=\"nav-link active freq-tab\" data-target=\"#pop-'+uid+'\">Population frequencies</a></li>' +
+      '<li class=\"nav-item\"><a class=\"nav-link active freq-tab\" data-target=\"#geno-'+uid+'\">Trio genotypes</a></li>' +
+      '<li class=\"nav-item\"><a class=\"nav-link freq-tab\" data-target=\"#pop-'+uid+'\">Population frequencies</a></li>' +
       '<li class=\"nav-item\"><a class=\"nav-link freq-tab\" data-target=\"#gnom-'+uid+'\">gnomAD frequencies</a></li>' +
       '<li class=\"nav-item\"><a class=\"nav-link freq-tab\" data-target=\"#pred-'+uid+'\">Predictors</a></li>' +
       '<li class=\"nav-item\"><a class=\"nav-link freq-tab\" data-target=\"#trans-'+uid+'\">Transcript / Protein </a></li>' +
@@ -1017,7 +1011,7 @@ var format = function(rowData){
 
     '<div class=\"tab-content\" style=\"margin-top:10px\">' +
     
-    '<div class=\"tab-pane\" id=\"geno-'+uid+'\">' +
+    '<div class=\"tab-pane active\" id=\"geno-'+uid+'\">' +
 
   '<table class=\"table table-sm table-bordered genotype-table\">' +
 
@@ -1058,7 +1052,7 @@ var format = function(rowData){
     '</div>' +
     
 
-      '<div class=\"tab-pane active\" id=\"pop-'+uid+'\">' +
+      '<div class=\"tab-pane\" id=\"pop-'+uid+'\">' +
         'AF: '+data['AF']+'<br>' +
         'AFR: '+data['AFR_AF']+'<br>' +
         'AMR: '+data['AMR_AF']+'<br>' +
@@ -1594,23 +1588,83 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
     observeEvent(input$drop_request, {
       
       gene <- input$drop_request$gene
-      type <- input$drop_request$type
-      uid  <- input$drop_request$uid
+      type  <- input$drop_request$type
+      uid   <- input$drop_request$uid
       
       target <- paste0("#", type, "-", uid)
       
-      df <- switch(type,
-                   expr = get_drop_expr(pool),
-                   splicing = get_drop_splicing(pool),
-                   mae = get_drop_mae(pool))
+      df <- switch(
+        type,
+        expr = get_drop_expr(pool),
+        splicing = get_drop_splicing(pool),
+        mae = get_drop_mae(pool)
+      )
       
-      gene_col <- if("gene_name" %in% colnames(df)) "gene_name" else "hgncSymbol"
-      
-      df <- df %>% filter(.data[[gene_col]] == gene)
+      # =====================
+      # NO HAY DATOS DROP
+      # =====================
       
       if(nrow(df) == 0){
-        html <- "<i>No data</i>"
+        
+        html <- "<i>No DROP data loaded</i>"
+        
+        session$sendCustomMessage(
+          "drop_render",
+          list(
+            html = html,
+            target = target
+          )
+        )
+        
+        return()
+      }
+      
+      # =====================
+      # DETECTAR COLUMNA GEN
+      # =====================
+      
+      gene_col <- NULL
+      
+      if("gene_name" %in% colnames(df)){
+        gene_col <- "gene_name"
+      }
+      
+      if("hgncSymbol" %in% colnames(df)){
+        gene_col <- "hgncSymbol"
+      }
+      
+      if(is.null(gene_col)){
+        
+        html <- "<i>Gene column not found</i>"
+        
+        session$sendCustomMessage(
+          "drop_render",
+          list(
+            html = html,
+            target = target
+          )
+        )
+        
+        return()
+      }
+      
+      # =====================
+      # FILTRAR GEN
+      # =====================
+      
+      df <- df %>%
+        filter(.data[[gene_col]] == gene)
+      
+      # =====================
+      # NO HAY RESULTADOS
+      # =====================
+      
+      if(nrow(df) == 0){
+        
+        html <- "<i>No data for this gene</i>"
+        
       } else {
+        
         html <- paste0(
           
           "<div style='width:100%;overflow-x:auto;'>",
@@ -1618,16 +1672,18 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
           "<div style='width:2500px;'>",
           
           "<table style='font-size:12px;
-               border-collapse:collapse;
-               white-space:nowrap;'>",
+             border-collapse:collapse;
+             white-space:nowrap;'>",
           
           "<thead><tr>",
+          
           paste0(
             "<th style='padding:6px 10px;border:1px solid #ddd'>",
             colnames(df),
             "</th>",
             collapse=""
           ),
+          
           "</tr></thead>",
           
           "<tbody>",
@@ -1637,12 +1693,14 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
               
               paste0(
                 "<tr>",
+                
                 paste0(
                   "<td style='padding:6px 10px;border:1px solid #ddd'>",
                   row,
                   "</td>",
                   collapse=""
                 ),
+                
                 "</tr>"
               )
               
@@ -1660,7 +1718,10 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
       
       session$sendCustomMessage(
         "drop_render",
-        list(html = html, target = target)
+        list(
+          html = html,
+          target = target
+        )
       )
     })
     

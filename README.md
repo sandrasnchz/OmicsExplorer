@@ -62,11 +62,11 @@ OmicsExplorer/
 ├── app/
 │   ├── app.R
 │   ├── modules/
+│   ├── queries/
 │   └── www/
 │
 ├── data/
 ├── db/
-├── scripts/
 │
 ├── renv/
 ├── renv.lock

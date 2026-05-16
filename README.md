@@ -9,10 +9,8 @@ It integrates and visualizes information from:
 - RNA sequencing (RNA-seq)
 - Whole exome sequencing (WES)
 - Whole genome sequencing (WGS)
-- Aberrant expression analyses
-- Aberrant splicing analyses
-- Variant prioritization workflows
-- Coverage and expression data
+- DROP analyses (Aberrant Expression, Aberrant Splicing and MAE)
+- Coverage data
 
 ---
 

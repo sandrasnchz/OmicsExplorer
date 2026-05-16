@@ -2,33 +2,32 @@
 
 OmicsExplorer is an interactive Shiny-based application for the visualization and exploration of genomic and transcriptomic analysis results.
 
-The platform has been developed in the context of rare disease diagnostics and bioinformatics workflows, integrating results from:
+The platform was developed in the context of rare disease diagnostics and omics data interpretation, providing an intuitive graphical interface for non-computational users.
 
-* RNA sequencing (RNA-seq)
-* Whole exome sequencing (WES)
-* Whole genome sequencing (WGS)
-* Aberrant expression and splicing analyses
-* Variant prioritization workflows
-* Coverage and expression visualization
+It integrates and visualizes information from:
 
-The application is designed to facilitate the interpretation of omics data by non-computational users through an intuitive graphical interface.
+- RNA sequencing (RNA-seq)
+- Whole exome sequencing (WES)
+- Whole genome sequencing (WGS)
+- DROP analyses (Aberrant Expression, Aberrant Splicing and MAE)
+- Coverage data
 
 ---
 
 # Features
 
-Current modules include:
+Current functionalities include:
 
-* Interactive gene expression visualization
-* RNA-seq expression comparison plots
-* Dynamic variant tables
-* Coverage visualization using bigWig files
-* Integration of DROP results
-* Interactive filtering and search tools
-* Transcriptomic and genomic result exploration
-* QC and analysis result visualization
+- Interactive gene expression visualization
+- RNA-seq expression comparison plots
+- Dynamic variant tables
+- Coverage visualization from bigWig files
+- Integration of DROP analysis results
+- Interactive filtering and search tools
+- Transcriptomic and genomic result exploration
+- Quality control and summary visualizations
 
-The application is modular and can be extended with additional analysis and visualization components.
+The application follows a modular architecture and can be extended with additional analysis and visualization modules.
 
 ---
 
@@ -36,20 +35,20 @@ The application is modular and can be extended with additional analysis and visu
 
 OmicsExplorer is mainly built with:
 
-* R
-* Shiny
-* Bioconductor
-* DuckDB
-* Plotly
-* DT
-* dplyr
+- R
+- Shiny
+- Bioconductor
+- DuckDB
+- Plotly
+- DT
+- dplyr
 
-The project is intended to integrate smoothly with bioinformatics workflows such as:
+The application is designed to integrate with bioinformatics workflows such as:
 
-* nf-core/rnaseq
-* nf-core/sarek
-* DROP
-* Nextflow-based pipelines
+- nf-core/rnaseq
+- nf-core/sarek
+- DROP
+- Nextflow-based pipelines
 
 ---
 
@@ -61,19 +60,18 @@ OmicsExplorer/
 ├── app/
 │   ├── app.R
 │   ├── modules/
-│   ├── www/
-│   └── data/
+│   ├── queries/
+│   └── www/
 │
-├── scripts/
-│   ├── run_app.R
-│   └── install_packages.R
+├── data/
+├── db/
 │
-├── launcher/
-│   └── Abrir_OmicsExplorer.bat
+├── renv/
+├── renv.lock
 │
 ├── README.md
 ├── LICENSE
-└── renv.lock
+└── .gitignore
 ```
 
 ---
@@ -83,54 +81,42 @@ OmicsExplorer/
 ## 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/OmicsExplorer.git
+git clone https://github.com/sandrasnchz/OmicsExplorer.git
 cd OmicsExplorer
 ```
 
-## 2. Install R dependencies
-
-Install required packages from R:
+## 2. Restore dependencies
 
 ```r
 install.packages("renv")
 renv::restore()
 ```
 
-Alternatively, dependencies can be installed manually.
-
 ---
 
 # Running the Application
 
-## Option 1 — Run from R
+Launch the application from R:
 
 ```r
 library(shiny)
 runApp("app")
 ```
 
-## Option 2 — Windows launcher
-
-Double click:
-
-```text
-Abrir_OmicsExplorer.bat
-```
-
-This automatically starts the Shiny application and opens it in the default web browser.
-
 ---
 
-# Portable Version
+# Releases
 
-A portable version of OmicsExplorer can be distributed internally including:
+Preconfigured portable versions are available in the GitHub Releases section.
 
-* Portable R installation
-* Required R packages
-* Application launcher
-* Shiny application
+The portable release includes:
 
-This allows non-technical users to run the application without installing R or additional dependencies.
+- Portable R environment
+- Preinstalled package dependencies
+- Application launcher
+- No additional installation required
+
+This allows non-technical users to run the application with a simple double click.
 
 ---
 
@@ -138,24 +124,24 @@ This allows non-technical users to run the application without installing R or a
 
 This repository does not include:
 
-* BAM/CRAM files
-* VCF files
-* bigWig files
-* Large databases
-* Patient-sensitive data
+- BAM/CRAM files
+- VCF files
+- bigWig files
+- Patient-sensitive data
+- Large genomic databases
 
-These files should be stored separately due to size and privacy constraints.
+These files are excluded due to size and privacy constraints.
 
 ---
 
 # Reproducibility
 
-The project uses:
+OmicsExplorer uses:
 
-* Git version control
-* Modular application design
-* `renv` dependency management
-* Standardized bioinformatics workflows
+- Git version control
+- Modular application design
+- `renv` dependency management
+- Standardized bioinformatics workflows
 
 to improve reproducibility and maintainability.
 
@@ -163,67 +149,21 @@ to improve reproducibility and maintainability.
 
 # License
 
-This project is licensed under the MIT License.
+This project is distributed under the MIT License.
 
-You are free to:
-
-* Use
-* Modify
-* Distribute
-* Reuse
-
-the software, provided that the original copyright and license notice are included.
-
-See the LICENSE file for details.
-
----
-
-# Recommended LICENSE file
-
-Create a file named:
-
-```text
-LICENSE
-```
-
-with the following content:
-
-```text
-MIT License
-
-Copyright (c) 2026 Sandra Sánchez Pinilla
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-```
+See the `LICENSE` file for details.
 
 ---
 
 # Citation
 
-If you use this project in academic work, please cite the repository or the associated thesis/project.
+If you use OmicsExplorer in academic work, please cite the repository and/or the associated thesis project.
 
 ---
 
 # Author
 
-Sandra Sánchez Pinilla
-Biomedical Bioinformatics and Omics Analysis
+**Sandra Sánchez Pinilla**  
 
 ---
 
@@ -231,10 +171,10 @@ Biomedical Bioinformatics and Omics Analysis
 
 This project has been developed using concepts and workflows inspired by:
 
-* DROP
-* nf-core
-* Bioconductor
-* Shiny
-* Nextflow
+- DROP
+- nf-core
+- Bioconductor
+- Shiny
+- Nextflow
 
 and related open-source bioinformatics tools.

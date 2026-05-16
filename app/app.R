@@ -1,10 +1,24 @@
-library(shiny)
-options(shiny.maxRequestSize = 20000 * 1024^2)
+# app.R
 
+# =========================
+# LIBRARIES
+# =========================
+library(shiny)
 library(shinyjs)
+library(shinyWidgets)
+library(shinycssloaders)
+library(DT)
+library(dplyr)
+library(tidyr)
+library(data.table)
+library(arrow)
 library(DBI)
 library(duckdb)
 library(pool)
+library(ggplot2)
+library(plotly)
+
+options(shiny.maxRequestSize = 20000 * 1024^2)
 
 # =========================
 # CONNECTION TO DATABASE

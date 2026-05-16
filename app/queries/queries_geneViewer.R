@@ -1,4 +1,4 @@
-library(DBI)
+# queries_geneViewer.R
 
 # =====================
 # VARIANTS POR GEN (DINÁMICO)

@@ -1,8 +1,4 @@
-library(shiny)
-library(DT)
-library(dplyr)
-library(data.table)
-library(arrow)
+# modules/loadData.R
 
 # =====================
 # UI

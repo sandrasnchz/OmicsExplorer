@@ -1,3 +1,8 @@
+# modules/home.R
+
+# =====================
+# UI
+# =====================
 homeUI <- function(id){
   ns <- NS(id)
   
@@ -47,6 +52,9 @@ homeUI <- function(id){
   )
 }
 
+# =====================
+# SERVER
+# =====================
 homeServer <- function(id){
   moduleServer(id, function(input, output, session){})
 }

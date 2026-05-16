@@ -1,7 +1,4 @@
-library(shiny)
-library(shinycssloaders)
-library(DT)
-library(dplyr)
+# modules/geneViewer.R
 
 # =====================
 # UI

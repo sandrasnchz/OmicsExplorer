@@ -1,3 +1,8 @@
+# modules/introduction.R
+
+# =====================
+# UI
+# =====================
 introUI <- function(id){
   ns <- NS(id)
   
@@ -29,6 +34,9 @@ introUI <- function(id){
   )
 }
 
+# =====================
+# SERVER
+# =====================
 introServer <- function(id){
   moduleServer(id, function(input, output, session){})
 }

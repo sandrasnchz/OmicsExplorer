@@ -1,4 +1,4 @@
-library(shiny)
+# modules/coverageViewer.R
 
 # =====================
 # UI

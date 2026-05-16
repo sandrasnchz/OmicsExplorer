@@ -1,3 +1,5 @@
+/* www/styles.css
+
 /* ========================= */
 /* GENERAL */
 /* ========================= */
@@ -734,18 +736,120 @@ table.dataTable th.inheritance-col {
 
 
 /* =========================
-   OmicsExplorer switch
+   OmicsExplorer switches
 ========================= */
 
-.omics-switch .pretty.p-switch.p-fill input:checked ~ .state:before {
-  background-color: #8b1e5b !important;
-  border-color: #8b1e5b !important;
+.omics-switch .pretty.p-switch.p-fill input:checked ~ .state:before{
+    background-color:#8b1e5b !important;
+    border-color:#8b1e5b !important;
 }
 
-.omics-switch .pretty.p-switch .state:after {
-  background-color: white !important;
+.omics-switch .pretty.p-switch .state:after{
+    background-color:white !important;
 }
 
-.omics-switch .state label {
-  font-weight: 700 !important;
+.omics-switch .state label{
+    font-weight:700 !important;
+}
+
+/* =========================
+   Filter cards
+========================= */
+
+.filter-card{
+    background:white;
+    border-radius:18px;
+    padding:22px;
+    margin-bottom:20px;
+    box-shadow:0 2px 12px rgba(0,0,0,.05);
+}
+
+.filter-card h4{
+    color:#8b1e5b;
+    font-weight:600;
+    margin-bottom:18px;
+    padding-bottom:10px;
+    border-bottom:2px solid #f5e8ef;
+}
+
+.filter-card .pretty{
+    margin-right:15px;
+    margin-bottom:10px;
+}
+
+
+/* =========================
+   Sliders
+========================= */
+
+.irs-bar{
+    background:#8b1e5b !important;
+}
+
+.irs-line-mid,
+.irs-line-left,
+.irs-line-right{
+    background:#e8d6df !important;
+}
+
+.irs-slider{
+    border-color:#8b1e5b !important;
+}
+
+.irs-from,
+.irs-to,
+.irs-single{
+    background:#8b1e5b !important;
+    color:white !important;
+}
+
+
+/* =========================
+   Pretty checkbox OmicsExplorer
+========================= */
+
+/* NO tocar switches */
+.pretty:not(.p-switch) .state label:before{
+    border:2px solid #8b1e5b !important;
+    border-radius:4px !important;
+    background:white !important;
+}
+
+/* seleccionado */
+.pretty:not(.p-switch) input:checked ~ .state label:before{
+    background:white !important;
+    border-color:#8b1e5b !important;
+}
+
+/* ocultar relleno automático */
+.pretty:not(.p-switch) input:checked ~ .state label:after{
+    opacity:0 !important;
+}
+
+/* tick centrado */
+.pretty:not(.p-switch) input:checked ~ .state .icon{
+    color:#8b1e5b !important;
+
+    font-size:11px !important;
+    font-weight:900 !important;
+
+    top:1px !important;
+    left:1px !important;
+
+    opacity:1 !important;
+}
+
+/* hover */
+.pretty:not(.p-switch):hover .state label:before{
+    border-color:#a8326f !important;
+}
+
+
+/* =========================
+   Checkbox labels
+========================= */
+
+.pretty .state label{
+    font-weight:500;
+    color:#333;
 }

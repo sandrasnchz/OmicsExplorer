@@ -1,211 +1,390 @@
-library(shiny)
-library(shinycssloaders)
-library(shinyWidgets)
-library(DT)
-library(DBI)
-library(dplyr)
-library(tidyr)
+# modules/data_viewer.R
 
 # =====================
 # UI
 # =====================
 dataViewerUI <- function(id){
+  
   ns <- NS(id)
   
-  div(class="content",
+  div(
+    class="content",
+    
+    h2("🔎 | DATA VIEWER"),
+    
+    div(
+      class="filter-box",
       
-      h2("🔎 | DATA VIEWER"),
+      textInput(
+        ns("gene"),
+        "Filter by gene:",
+        placeholder="e.g. DPM1"
+      )
+    ),
+    
+    tabsetPanel(
       
-      div(class="filter-box",
-          textInput(
-            ns("gene"),
-            "Filter by gene:",
-            placeholder = "e.g. DPM1"
+      id=ns("main_tabs"),
+      
+      # ==========================================================
+      # VARIANTS
+      # ==========================================================
+      tabPanel(
+        
+        "Variants (WES + WGS)",
+        
+        div(
+          
+          class="filter-box",
+          
+          # =====================
+          # QUALITY FILTERS
+          # =====================
+          
+          div(
+            
+            class="filter-card",
+            
+            h4(icon("sliders-h"), " Quality filters"),
+            
+            fluidRow(
+              
+              column(
+                4,
+                
+                sliderInput(
+                  ns("af"),
+                  "Max AF",
+                  min=0,
+                  max=1,
+                  value=0.05,
+                  step=0.01
+                )
+              ),
+              
+              column(
+                4,
+                
+                sliderInput(
+                  ns("dp"),
+                  "DP range",
+                  min=0,
+                  max=100,
+                  value=c(10,100),
+                  step=1
+                )
+              ),
+              
+              column(
+                4,
+                
+                sliderInput(
+                  ns("gq"),
+                  "GQ range",
+                  min=0,
+                  max=100,
+                  value=c(90,100),
+                  step=1
+                )
+              )
+              
+            )
+          ),
+          
+          # =====================
+          # VARIANT FILTERS
+          # =====================
+          
+          div(
+            
+            class="filter-card",
+            
+            h4(icon("dna"), " Variant filters"),
+            
+            fluidRow(
+              
+              column(
+                6,
+                
+                prettyCheckboxGroup(
+                  inputId=ns("impact"),
+                  label="Impact",
+                  choices=c(
+                    "HIGH",
+                    "MODERATE",
+                    "LOW",
+                    "MODIFIER"
+                  ),
+                  selected=c(
+                    "HIGH",
+                    "MODERATE",
+                    "LOW",
+                    "MODIFIER"
+                  ),
+                  inline=TRUE,
+                  shape="square",
+                  icon=icon("check")
+                )
+              ),
+              
+              column(
+                3,
+                
+                prettyCheckboxGroup(
+                  inputId=ns("source"),
+                  label="Source",
+                  choices=c(
+                    "WES",
+                    "WGS",
+                    "BOTH"
+                  ),
+                  selected=c(
+                    "WES",
+                    "WGS",
+                    "BOTH"
+                  ),
+                  inline=FALSE,
+                  shape="square",
+                  icon=icon("check")
+                )
+              ),
+              
+              column(
+                3,
+                
+                prettyCheckboxGroup(
+                  inputId=ns("variant_class"),
+                  label="Variant class",
+                  choices=c(
+                    "SNV",
+                    "insertion",
+                    "deletion"
+                  ),
+                  selected=c(
+                    "SNV",
+                    "insertion",
+                    "deletion"
+                  ),
+                  inline=FALSE,
+                  shape="square",
+                  icon=icon("check")
+                )
+              )
+              
+            )
+          ),
+          
+          # =====================
+          # INHERITANCE
+          # =====================
+          
+          div(
+            
+            class="filter-card",
+            
+            h4(icon("project-diagram"), " Inheritance & gene filters"),
+            
+            fluidRow(
+              
+              column(
+                
+                5,
+                
+                prettyCheckboxGroup(
+                  inputId=ns("inheritance_source"),
+                  label="Inheritance source",
+                  choices=c(
+                    "AR",
+                    "AD",
+                    "XR",
+                    "XD",
+                    "MT"
+                  ),
+                  selected=c(
+                    "AR",
+                    "AD",
+                    "XR",
+                    "XD",
+                    "MT"
+                  ),
+                  inline=TRUE,
+                  shape="square",
+                  icon=icon("check")
+                ),
+                
+                br(),
+                
+                prettyCheckboxGroup(
+                  inputId=ns("de_novo_source"),
+                  label="de novo",
+                  choices=c(
+                    "AD - de_novo"="AD",
+                    "XD - de_novo"="XD"
+                  ),
+                  selected=c(
+                    "AD",
+                    "XD"
+                  ),
+                  inline=TRUE,
+                  shape="square",
+                  icon=icon("check")
+                )
+                
+              ),
+              
+              column(
+                4,
+                
+                br(),
+                
+                div(
+                  class="omics-switch",
+                  
+                  prettySwitch(
+                    inputId=ns("hide_intergenic"),
+                    label="Hide intergenic variants",
+                    value=TRUE,
+                    fill=TRUE
+                  )
+                ),
+                
+                div(
+                  class="omics-switch",
+                  
+                  prettySwitch(
+                    inputId=ns("only_omim"),
+                    label="Only OMIM genes",
+                    value=FALSE,
+                    fill=TRUE
+                  )
+                ),
+                
+                div(
+                  class="omics-switch",
+                  
+                  prettySwitch(
+                    inputId=ns("only_canonical"),
+                    label="Only canonical transcripts",
+                    value=TRUE,
+                    fill=TRUE
+                  )
+                )
+              )
+              
+            )
           )
+          
+        ),
+        
+        br(),
+        
+        withSpinner(
+          DTOutput(ns("variants")),
+          type=4,
+          color="#8b1e5b"
+        ),
+        
+        div(
+          class="download-box",
+          
+          radioButtons(
+            ns("variants_download_format"),
+            "Download format:",
+            choices=c(
+              "TSV"="tsv",
+              "TXT"="txt"
+            ),
+            selected="tsv",
+            inline=TRUE
+          ),
+          
+          downloadButton(
+            ns("download_variants"),
+            "Download variants",
+            class="omics-download-btn"
+          )
+        )
       ),
       
-      tabsetPanel(id = ns("main_tabs"),
+      # ==========================================================
+      # RNA
+      # ==========================================================
+      
+      tabPanel(
+        
+        "RNA Data",
+        
+        div(
+          
+          class="filter-box",
+          
+          div(
+            class="filter-card",
+            
+            h4(icon("dna"), " RNA filters"),
+            
+            fluidRow(
+              
+              column(
+                12,
+                
+                prettyCheckboxGroup(
+                  ns("drop_filters"),
+                  "DROP filters",
                   
-                  tabPanel("Variants (WES + WGS)",
-                           
-                           div(class = "filter-box",
-                               
-                               fluidRow(
-                                 column(3,
-                                        sliderInput(ns("af"), "Max AF:",
-                                                    min = 0, max = 1,
-                                                    value = 0.05, step = 0.01)
-                                 ),
-                                 column(3,
-                                        sliderInput(
-                                          ns("dp"),
-                                          "Min DP:",
-                                          min = 0,
-                                          max = 100,
-                                          value = c(10, 100),
-                                          step = 1
-                                        )
-                                 ),
-                                 column(3,
-                                        sliderInput(
-                                          ns("gq"),
-                                          "Min GQ:",
-                                          min = 0,
-                                          max = 100,
-                                          value = c(90, 100),
-                                          step = 1
-                                        )
-                                 ),
-                                 column(3,
-                                        checkboxGroupInput(ns("impact"), "Impact:",
-                                                           choices = c("HIGH","MODERATE","LOW","MODIFIER"),
-                                                           selected = c("HIGH","MODERATE","LOW","MODIFIER"))
-                                 ),
-                                 column(3,
-                                        checkboxGroupInput(ns("source"), "Source:",
-                                                           choices = c("WES","WGS","BOTH"),
-                                                           selected = c("WES","WGS","BOTH"))
-                                 ),
-                                 column(
-                                   3,
-                                   checkboxGroupInput(
-                                     ns("inheritance_source"),
-                                     "Inheritance source:",
-                                     choices = c("AR","AD","XR","XD","MT"),
-                                     selected = c("AR","AD","XR","XD","MT")
-                                   )
-                                 )
-                                 ,
-                               column(
-                                 3,
-                                 checkboxGroupInput(
-                                   ns("de_novo_source"),
-                                   "de novo:",
-                                   choices = c("AD - de_novo" = "AD", "XD - de_novo" = "XD"),
-                                   selected = c("AD","XD")
-                                   )
-                                 )
-                               ),
-                               
-                               fluidRow(
-                                 
-                                 column(3,
-                                        div(
-                                          class = "omics-switch",
-                                          
-                                     prettySwitch(
-                                       inputId = ns("hide_intergenic"),
-                                       label = "Hide intergenic variants",
-                                       value = FALSE,
-                                       fill = TRUE
-                                     )
-                                        )
-                                 ),
-                                 column(
-                                   3,
-                                   div(
-                                     class = "omics-switch",
-                                     
-                                     prettySwitch(
-                                       inputId = ns("only_omim"),
-                                       label = "Only OMIM genes",
-                                       value = FALSE,
-                                       fill = TRUE
-                                     )
-                                   )
-                                 ),
-                                 column(
-                                   3,
-                                   div(
-                                     class = "omics-switch",
-                                     
-                                     prettySwitch(
-                                       inputId = ns("only_canonical"),
-                                       label = "Only canonical transcripts",
-                                       value = TRUE,
-                                       fill = TRUE
-                                     )
-                                   )
-                                 ),
-                                 
-                                 column(
-                                   4,
-                                   checkboxGroupInput(
-                                     ns("variant_class"),
-                                     "Variant class:",
-                                     choices = c("SNV","insertion","deletion"),
-                                     selected = c("SNV","insertion","deletion")
-                                   )
-                                 )
-                               )
-                           ),
-                           
-                           br(),
-                           withSpinner(DTOutput(ns("variants")), type = 4, color = "#8b1e5b"),
-
-                           div(
-                             class = "download-box",
-                             radioButtons(
-                               ns("variants_download_format"),
-                               "Download format:",
-                               choices = c("TSV" = "tsv", "TXT" = "txt"),
-                               selected = "tsv",
-                               inline = TRUE
-                             ),
-                             downloadButton(
-                               ns("download_variants"),
-                               "Download variants",
-                               class = "omics-download-btn"
-                             )
-                           )
+                  choices = c(
+                    "Aberrant Expression" = "expr",
+                    "Aberrant Splicing" = "splicing",
+                    "MAE" = "mae"
                   ),
                   
-                  tabPanel(
-                    "RNA Data",
-                    
-                    div(class = "filter-box",
-                        
-                        fluidRow(
-                          
-                          column(
-                            4,
-                            checkboxGroupInput(
-                              ns("drop_filters"),
-                              "DROP filters:",
-                              choices = c(
-                                "Aberrant Expression" = "expr",
-                                "Aberrant Splicing" = "splicing",
-                                "MAE" = "mae"
-                              ),
-                            )
-                          )
-                          
-                        )
-                    ),
-                    
-                    withSpinner(
-                      DTOutput(ns("rna")),
-                      type = 4,
-                      color = "#8b1e5b"
-                    ),
-
-                    div(
-                      class = "download-box",
-                      radioButtons(
-                        ns("rna_download_format"),
-                        "Download format:",
-                        choices = c("TSV" = "tsv", "TXT" = "txt"),
-                        selected = "tsv",
-                        inline = TRUE
-                      ),
-                      downloadButton(
-                        ns("download_rna"),
-                        "Download RNA table",
-                        class = "omics-download-btn"
-                      )
-                    )
-                  )
+                  selected = c(
+                    "expr",
+                    "splicing",
+                    "mae"
+                  ),
+                  
+                  inline = TRUE,
+                  shape = "curve",
+                  icon=icon("check")
+                )
+                
+              )
+            )
+          )
+        ),
+        
+        withSpinner(
+          DTOutput(ns("rna")),
+          type=4,
+          color="#8b1e5b"
+        ),
+        
+        div(
+          
+          class="download-box",
+          
+          radioButtons(
+            ns("rna_download_format"),
+            "Download format:",
+            choices=c(
+              "TSV"="tsv",
+              "TXT"="txt"
+            ),
+            selected="tsv",
+            inline=TRUE
+          ),
+          
+          downloadButton(
+            ns("download_rna"),
+            "Download RNA table",
+            class="omics-download-btn"
+          )
+        )
+        
       )
+      
+    )
   )
 }
 
@@ -216,7 +395,7 @@ dataViewerServer <- function(id, pool, selected_gene){
   moduleServer(id, function(input, output, session){
     
     `%||%` <- function(a, b) if (is.null(a)) b else a
-
+    
     all_impacts <- c("HIGH","MODERATE","LOW","MODIFIER")
     all_sources <- c("WES","WGS","BOTH")
     all_inheritance_sources <- c("AR","AD","XR","XD","MT")
@@ -329,14 +508,14 @@ dataViewerServer <- function(id, pool, selected_gene){
       
       return(df)
     }
-
+    
     get_value <- function(row, field){
       if(!field %in% names(row)) return("")
       value <- row[[field]][1]
       if(is.null(value) || is.na(value) || identical(value, "")) return("-")
       htmltools::htmlEscape(as.character(value))
     }
-
+    
     variant_detail_html <- function(row){
       paste0(
         "<div class='variant-detail-tabs-scroll'>",
@@ -348,12 +527,12 @@ dataViewerServer <- function(id, pool, selected_gene){
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#trans-detail'>Transcript / Protein</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#annot-detail'>Transcript annotations</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#hgvs-detail'>HGVS info</a></li>",
-        "<li class='nav-item'><a class='nav-link freq-tab' data-target='#motif-detail'>Regulación y motifs</a></li>",
+        "<li class='nav-item'><a class='nav-link freq-tab' data-target='#motif-detail'>Regulation and motifs</a></li>",
         "</ul>",
         "</div>",
-
+        
         "<div class='tab-content' style='margin-top:10px'>",
-
+        
         "<div class='tab-pane' id='geno-detail'>",
         "<table class='table table-sm table-bordered genotype-table'>",
         "<tr><th></th><th>GT</th><th>DP</th><th>AD</th><th>GQ</th></tr>",
@@ -362,7 +541,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         "<tr><td><b>Child</b></td><td>", get_value(row, "CHILD_GT"), "</td><td>", get_value(row, "CHILD_DP"), "</td><td>", get_value(row, "CHILD_AD"), "</td><td>", get_value(row, "CHILD_GQ"), "</td></tr>",
         "</table>",
         "</div>",
-
+        
         "<div class='tab-pane active' id='pop-detail'>",
         "AF: ", get_value(row, "AF"), "<br>",
         "AFR: ", get_value(row, "AFR_AF"), "<br>",
@@ -373,7 +552,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         "AA: ", get_value(row, "AA_AF"), "<br>",
         "EA: ", get_value(row, "EA_AF"),
         "</div>",
-
+        
         "<div class='tab-pane' id='gnom-detail'>",
         "AF: ", get_value(row, "gnomAD_AF"), "<br>",
         "AFR: ", get_value(row, "gnomAD_AFR_AF"), "<br>",
@@ -384,7 +563,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         "NFE: ", get_value(row, "gnomAD_NFE_AF"), "<br>",
         "OTH: ", get_value(row, "gnomAD_OTH_AF"),
         "</div>",
-
+        
         "<div class='tab-pane' id='pred-detail'>",
         "<ul class='nav nav-tabs'>",
         "<li class='nav-item'><a class='nav-link active subtab' data-target='#sift-detail'>SIFT</a></li>",
@@ -404,7 +583,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         "<div class='tab-pane' id='cadd-detail'>Raw: ", get_value(row, "CADD_raw"), "<br>Phred: ", get_value(row, "CADD_phred"), "</div>",
         "</div>",
         "</div>",
-
+        
         "<div class='tab-pane' id='trans-detail'>",
         "<b>Transcript position</b><br><br>",
         "cDNA position: ", get_value(row, "cDNA_position"), "<br>",
@@ -417,7 +596,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         "Exon: ", get_value(row, "EXON"), "<br>",
         "Intron: ", get_value(row, "INTRON"),
         "</div>",
-
+        
         "<div class='tab-pane' id='annot-detail'>",
         "<b>Transcript quality</b><br><br>",
         "Canonical: ", get_value(row, "CANONICAL"), "<br>",
@@ -432,7 +611,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         "TrEMBL: ", get_value(row, "TREMBL"), "<br>",
         "UniParc: ", get_value(row, "UNIPARC"),
         "</div>",
-
+        
         "<div class='tab-pane' id='hgvs-detail'>",
         "<b>VEP HGVS</b><br><br>",
         "HGVSc: ", get_value(row, "HGVSc"), "<br>",
@@ -442,7 +621,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         "HGVSc snpEff: ", get_value(row, "HGVSc_snpEff"), "<br>",
         "HGVSp snpEff: ", get_value(row, "HGVSp_snpEff"),
         "</div>",
-
+        
         "<div class='tab-pane' id='motif-detail'>",
         "<b>Regulación y motifs</b><br><br>",
         "Motif name: ", get_value(row, "MOTIF_NAME"), "<br>",
@@ -451,9 +630,9 @@ dataViewerServer <- function(id, pool, selected_gene){
         "Motif score change: ", get_value(row, "MOTIF_SCORE_CHANGE"), "<br>",
         "Transcription factors: ", get_value(row, "TRANSCRIPTION_FACTORS"),
         "</div>",
-
+        
         "</div>",
-
+        
         "<hr>",
         "<div class='explore-box'>",
         "<div class='explore-title'>Explore</div>",
@@ -465,14 +644,14 @@ dataViewerServer <- function(id, pool, selected_gene){
         "</div>"
       )
     }
-
+    
     variants_files <- reactivePoll(
       intervalMillis = 1000,
       session = session,
       checkFunc = function(){
         files <- Sys.glob("../data/variants/*.parquet")
         if(length(files) == 0) return("")
-
+        
         info <- file.info(files)
         paste(files, info$mtime, info$size, collapse = "|")
       },
@@ -480,14 +659,14 @@ dataViewerServer <- function(id, pool, selected_gene){
         Sys.glob("../data/variants/*.parquet")
       }
     )
-
+    
     variants_all <- reactive({
       req(pool)
       variants_files()
       get_variants_with_inheritance(pool) %>%
         mutate(.variant_row_key = row_number())
     })
-
+    
     format_inheritance_display <- function(x){
       x <- as.character(x)
       p1 <- sub(".*(P1:[^|\\)]+).*", "\\1", x)
@@ -499,29 +678,29 @@ dataViewerServer <- function(id, pool, selected_gene){
         x
       )
     }
-
+    
     filtered_variants_data <- reactive({
       df <- variants_all()
-
+      
       if(nrow(df) == 0){
         return(df)
       }
-
+      
       if(!is.null(selected_gene()) && selected_gene() != ""){
         df <- df %>% filter(toupper(SYMBOL) == toupper(selected_gene()))
       }
-
+      
       if(nzchar(input$gene)){
         df <- df %>% filter(toupper(SYMBOL) == toupper(input$gene))
       }
-
+      
       if(!is.null(input$af) && input$af < 1){
         df <- df %>%
           mutate(MAX_AF_FILTER = suppressWarnings(as.numeric(MAX_AF))) %>%
           filter(is.na(MAX_AF_FILTER) | MAX_AF_FILTER <= input$af) %>%
           select(-MAX_AF_FILTER)
       }
-
+      
       if(!is.null(input$dp) && !identical(input$dp, c(0, 1000))){
         df <- df %>%
           mutate(CHILD_DP_FILTER = suppressWarnings(as.numeric(CHILD_DP))) %>%
@@ -532,7 +711,7 @@ dataViewerServer <- function(id, pool, selected_gene){
           ) %>%
           select(-CHILD_DP_FILTER)
       }
-
+      
       if(!is.null(input$gq) && !identical(input$gq, c(0, 100))){
         df <- df %>%
           mutate(CHILD_GQ_FILTER = suppressWarnings(as.numeric(CHILD_GQ))) %>%
@@ -543,34 +722,34 @@ dataViewerServer <- function(id, pool, selected_gene){
           ) %>%
           select(-CHILD_GQ_FILTER)
       }
-
+      
       if(length(input$impact) > 0 && !setequal(input$impact, all_impacts)){
         df <- df %>% filter(IMPACT %in% input$impact)
       }
-
+      
       if(length(input$source) > 0 && !setequal(input$source, all_sources)){
         df <- df %>% filter(source %in% input$source)
       }
-
+      
       if(length(input$inheritance_source) > 0 && !setequal(input$inheritance_source, all_inheritance_sources)){
         df <- df %>%
           filter(inheritance_source %in% input$inheritance_source)
       }
-
+      
       if(length(input$de_novo_source) > 0 && !setequal(input$de_novo_source, all_de_novo_sources)){
         df <- df %>%
           filter(inheritance_type != "de_novo" | inheritance_source %in% input$de_novo_source)
       } else if(length(input$de_novo_source) == 0){
         df <- df %>% filter(inheritance_type != "de_novo")
       }
-
+      
       if(input$hide_intergenic){
         df <- df %>%
           filter(
             !grepl("intergenic_variant", Consequence, ignore.case = TRUE)
           )
       }
-
+      
       if(input$only_omim){
         df <- df %>%
           filter(
@@ -580,25 +759,25 @@ dataViewerServer <- function(id, pool, selected_gene){
               OMIM_id != "-"
           )
       }
-
+      
       if(input$only_canonical && "CANONICAL" %in% colnames(df)){
         df <- df %>%
           filter(toupper(CANONICAL) == "YES")
       }
-
+      
       if(length(input$variant_class) > 0 && !setequal(input$variant_class, all_variant_classes)){
         df <- df %>%
           filter(VARIANT_CLASS %in% input$variant_class)
       }
-
+      
       df
     })
-
+    
     write_download_table <- function(df, file){
       if(".variant_row_key" %in% colnames(df)){
         df <- df %>% select(-.variant_row_key)
       }
-
+      
       write.table(
         df,
         file = file,
@@ -608,7 +787,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         na = ""
       )
     }
-
+    
     format_impact_badge <- function(x){
       impact <- as.character(x)
       class <- paste0("impact-badge impact-", tolower(impact))
@@ -685,7 +864,7 @@ dataViewerServer <- function(id, pool, selected_gene){
           df <- df %>%
             filter(inheritance_source %in% input$inheritance_source)
         }
-
+        
         if(length(input$de_novo_source) > 0 && !setequal(input$de_novo_source, all_de_novo_sources)){
           df <- df %>%
             filter(inheritance_type != "de_novo" | inheritance_source %in% input$de_novo_source)
@@ -709,7 +888,7 @@ dataViewerServer <- function(id, pool, selected_gene){
                 OMIM_id != "-"
             )
         }
-
+        
         if(input$only_canonical && "CANONICAL" %in% colnames(df)){
           df <- df %>%
             filter(toupper(CANONICAL) == "YES")
@@ -1081,7 +1260,7 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
           datatable(data.frame(Message="Error loading variants"))
         })
     })
-
+    
     output$download_variants <- downloadHandler(
       filename = function(){
         ext <- input$variants_download_format %||% "tsv"
@@ -1092,20 +1271,20 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
         write_download_table(df, file)
       }
     )
-
+    
     observeEvent(input$variant_detail_request, {
       req(input$variant_detail_request$row_key, input$variant_detail_request$uid)
-
+      
       row <- variants_all() %>%
         filter(.variant_row_key == as.integer(input$variant_detail_request$row_key)) %>%
         slice(1)
-
+      
       html <- if(nrow(row) == 0){
         "<i>No detail available for this variant</i>"
       } else {
         variant_detail_html(row)
       }
-
+      
       session$sendCustomMessage(
         "variant_detail_render",
         list(
@@ -1134,65 +1313,65 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
         updateTabsetPanel(session, "main_tabs", selected = "Variants (WES + WGS)")
       }
     })
-
+    
     rna_filtered_data <- reactive({
       df <- get_rna(pool)
-
+      
       if(nrow(df) == 0){
         return(df)
       }
-
+      
       tpm_col <- grep("^tpm$", colnames(df), value = TRUE)
-
+      
       if(length(tpm_col) == 1){
         files_sample <- list.files("../data/rnaseq", pattern="sample_", full.names=TRUE)
-
+        
         sample_name <- tools::file_path_sans_ext(basename(files_sample[1]))
         sample_name <- sub("_[0-9]{8}_[0-9]{6}$", "", sample_name)
-
+        
         new_name <- paste0(sample_name, "_tpm")
-
+        
         colnames(df)[colnames(df) == "tpm"] <- new_name
       }
-
+      
       drop_flags <- get_drop_flags(pool)
-
+      
       df <- df %>%
         left_join(drop_flags, by = c("gene_name" = "gene")) %>%
         mutate(
           drop_expr = replace_na(drop_expr, FALSE),
           drop_splicing = replace_na(drop_splicing, FALSE),
           drop_mae = replace_na(drop_mae, FALSE),
-
+          
           DROP_status = paste0(
             "expr: ", drop_expr, "; ",
             "splicing: ", drop_splicing, "; ",
             "mae: ", drop_mae
           )
         )
-
+      
       if(!is.null(selected_gene()) && selected_gene()!=""){
         df <- df %>% filter(toupper(gene_name) == toupper(selected_gene()))
       }
-
+      
       if(nzchar(input$gene)){
         df <- df %>% filter(toupper(gene_name) == toupper(input$gene))
       }
-
+      
       if(length(input$drop_filters) > 0){
         if("expr" %in% input$drop_filters){
           df <- df %>% filter(drop_expr == TRUE)
         }
-
+        
         if("splicing" %in% input$drop_filters){
           df <- df %>% filter(drop_splicing == TRUE)
         }
-
+        
         if("mae" %in% input$drop_filters){
           df <- df %>% filter(drop_mae == TRUE)
         }
       }
-
+      
       df
     })
     
@@ -1394,7 +1573,7 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
         ))
       )
     })
-
+    
     output$download_rna <- downloadHandler(
       filename = function(){
         ext <- input$rna_download_format %||% "tsv"
@@ -1433,18 +1612,49 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
         html <- "<i>No data</i>"
       } else {
         html <- paste0(
-          "<table style='font-size:12px;width:100%'>",
-          "<tr>",
-          paste0("<th>", colnames(df), "</th>", collapse=""),
-          "</tr>",
+          
+          "<div style='width:100%;overflow-x:auto;'>",
+          
+          "<div style='width:2500px;'>",
+          
+          "<table style='font-size:12px;
+               border-collapse:collapse;
+               white-space:nowrap;'>",
+          
+          "<thead><tr>",
           paste0(
-            apply(df, 1, function(row){
-              paste0("<tr>",
-                     paste0("<td>", row, "</td>", collapse=""),
-                     "</tr>")
-            }), collapse=""
+            "<th style='padding:6px 10px;border:1px solid #ddd'>",
+            colnames(df),
+            "</th>",
+            collapse=""
           ),
-          "</table>"
+          "</tr></thead>",
+          
+          "<tbody>",
+          
+          paste0(
+            apply(df,1,function(row){
+              
+              paste0(
+                "<tr>",
+                paste0(
+                  "<td style='padding:6px 10px;border:1px solid #ddd'>",
+                  row,
+                  "</td>",
+                  collapse=""
+                ),
+                "</tr>"
+              )
+              
+            }),
+            collapse=""
+          ),
+          
+          "</tbody>",
+          "</table>",
+          
+          "</div>",
+          "</div>"
         )
       }
       

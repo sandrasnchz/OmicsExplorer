@@ -11,7 +11,7 @@ plotsUI <- function(id){
   div(
     class = "content",
     
-    h2("📊 | RNA PLOTS"),
+    h2("📉 | RNA PLOTS"),
     
     br(),
     

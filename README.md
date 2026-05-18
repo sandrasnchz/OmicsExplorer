@@ -1,59 +1,119 @@
 # OmicsExplorer
 
 OmicsExplorer is an interactive Shiny-based application for the visualization and exploration of genomic and transcriptomic analysis results.
-<p align="center">
-  <img src="app/www/logo1.png" width="900">
-</p>
-
-
 
 The platform was developed in the context of rare disease diagnostics and omics data interpretation, providing an intuitive graphical interface for non-computational users.
 
-It integrates and visualizes information from:
+Supported data sources include:
 
 - RNA sequencing (RNA-seq)
 - Whole exome sequencing (WES)
 - Whole genome sequencing (WGS)
-- DROP analyses (Aberrant Expression, Aberrant Splicing and MAE)
-- Coverage data
+- DROP analyses:
+  - Aberrant Expression (AE)
+  - Aberrant Splicing (AS)
+  - Mono-Allelic Expression (MAE)
+- Coverage tracks (bigWig)
 
 ---
 
-# Features
+# Key Features
 
-Current functionalities include:
+## Genomic exploration
 
-- Interactive gene expression visualization
-- RNA-seq expression comparison plots
 - Dynamic variant tables
+- Interactive filtering and search
+- WES/WGS result exploration
 - Coverage visualization from bigWig files
-- Integration of DROP analysis results
-- Interactive filtering and search tools
-- Transcriptomic and genomic result exploration
-- Quality control and summary visualizations
 
-The application follows a modular architecture and can be extended with additional analysis and visualization modules.
+## Transcriptomic exploration
+
+- Gene expression visualization
+- RNA-seq sample comparison plots
+- Transcript-level exploration
+- Expression profile inspection
+
+## Functional evidence integration
+
+- Integration of DROP analyses
+- Aberrant expression (AE)
+- Aberrant splicing (AS)
+- Mono-allelic expression (MAE)
+
+## Quality control and reporting
+
+- Interactive quality control summaries
+- QC plots and metrics visualization
+- Multi-omics result overview
+
+---
+
+# Quick Start
+
+## Clone repository
+
+```bash
+git clone https://github.com/sandrasnchz/OmicsExplorer.git
+cd OmicsExplorer
+```
+
+## Restore dependencies
+
+```r
+install.packages("renv")
+renv::restore()
+```
+
+## Run application
+
+```r
+library(shiny)
+
+runApp("app")
+```
+
+---
+
+# Portable Release
+
+Preconfigured portable versions are available in the GitHub Releases section.
+
+Portable releases include:
+
+✔ Portable R environment  
+✔ Preinstalled package dependencies  
+✔ Application launcher  
+✔ No additional installation required  
+
+### Quick start
+
+1. Download the latest portable release from **Releases**
+2. Extract the `.zip` file
+3. Open:
+
+```text
+launcher/Abrir_OmicsExplorer.bat
+```
+
+4. The application will automatically start and open in your default web browser.
 
 ---
 
 # Technologies
 
-OmicsExplorer is mainly built with:
-
-- R
-- Shiny
-- Bioconductor
-- DuckDB
-- Plotly
-- DT
-- dplyr
+OmicsExplorer is mainly built with R.
 
 The application is designed to integrate with bioinformatics workflows such as:
 
-- nf-core/rnaseq
 - nf-core/sarek
+- nf-core/rnaseq
 - DROP
-- Nextflow-based pipelines
+
+Dependency management and reproducibility are supported through:
+
+- `renv`
+- Git version control
+- Modular application architecture
 
 ---
 
@@ -64,14 +124,14 @@ OmicsExplorer/
 │
 ├── app/
 │   ├── app.R
-│   ├── modules/
-│   ├── queries/
-│   └── www/
+│   ├── modules/       # Shiny modules
+│   ├── queries/       # Database queries
+│   └── www/           # Static resources
 │
-├── data/
-├── db/
+├── data/              # Processed datasets
+├── db/                # Database file
 │
-├── renv/
+├── renv/              # Dependency management
 ├── renv.lock
 │
 ├── README.md
@@ -81,74 +141,23 @@ OmicsExplorer/
 
 ---
 
-# Installation
+# Data Availability
 
-## 1. Clone the repository
+This repository intentionally excludes:
 
-```bash
-git clone https://github.com/sandrasnchz/OmicsExplorer.git
-cd OmicsExplorer
-```
-
-## 2. Restore dependencies
-
-```r
-install.packages("renv")
-renv::restore()
-```
-
----
-
-# Running the Application
-
-Launch the application from R:
-
-```r
-library(shiny)
-runApp("app")
-```
-
----
-
-# Releases
-
-Preconfigured portable versions are available in the GitHub Releases section.
-
-The portable release includes:
-
-- Portable R environment
-- Preinstalled package dependencies
-- Application launcher
-- No additional installation required
-
-This allows non-technical users to run the application with a simple double click.
-
----
-
-# Data
-
-This repository does not include:
-
-- BAM/CRAM files
+- BAM / CRAM files
 - VCF files
 - bigWig files
-- Patient-sensitive data
+- Patient-derived datasets
 - Large genomic databases
 
-These files are excluded due to size and privacy constraints.
+These files are excluded due to privacy requirements and repository size limitations.
 
 ---
 
-# Reproducibility
+# Citation
 
-OmicsExplorer uses:
-
-- Git version control
-- Modular application design
-- `renv` dependency management
-- Standardized bioinformatics workflows
-
-to improve reproducibility and maintainability.
+If you use OmicsExplorer in academic work, please cite the repository and/or the associated master thesis project.
 
 ---
 
@@ -160,26 +169,9 @@ See the `LICENSE` file for details.
 
 ---
 
-# Citation
-
-If you use OmicsExplorer in academic work, please cite the repository and/or the associated thesis project.
-
----
-
 # Author
 
-**Sandra Sánchez Pinilla**  
+**Sandra Sánchez Pinilla**
 
----
-
-# Acknowledgements
-
-This project has been developed using concepts and workflows inspired by:
-
-- DROP
-- nf-core
-- Bioconductor
-- Shiny
-- Nextflow
-
-and related open-source bioinformatics tools.
+Bioinformatics Unit (BU-ISCIII)  
+Instituto de Salud Carlos III (ISCIII)

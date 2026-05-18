@@ -92,64 +92,100 @@ body {
 }
 
 /* ========================= */
-/* HOME / INTRO */
+/* HOME */
 /* ========================= */
 
-.home-center {
-  text-align: center;
-  margin-top: 60px;
+.home-hero{
+    text-align:center;
+    margin-top:30px;
+    margin-bottom:40px;
 }
 
-.subtitle {
-  color: #8b1e5b;
-  font-style: italic;
+.home-title{
+    font-size:48px;
+    font-weight:700;
+    color:#8b1e5b;
+    margin-bottom:5px;
 }
 
-.description-box {
-  background: #eeeeee;
-  padding: 18px;
-  border-radius: 15px;
-  margin: 30px auto 50px auto;
-  width: 60%;
+.home-subtitle{
+    font-size:18px;
+    color:#777;
+    font-style:italic;
+    margin-bottom:30px;
 }
 
-.home-grid {
-  display: flex;
-  justify-content: center;
-  gap: 80px;
-  margin-top: 40px;
+.home-description{
+    width:80%;
+    margin:auto;
+    text-align:left;
+    line-height:1.7;
+    font-size:15px;
 }
 
-.section-title {
-  background: #8b1e5b;
-  color: white;
-  padding: 8px 15px;
-  border-radius: 20px;
-  margin-bottom: 10px;
+.home-card{
+    height:100%;
+    min-height:260px;
 }
 
-.card {
-  background: #eeeeee;
-  padding: 20px;
-  border-radius: 15px;
-  width: 300px;
+.home-card p{
+    line-height:1.8;
+    color:#444;
 }
 
-.footer {
-  text-align: center;
-  margin-top: 80px;
-  font-size: 12px;
-  color: grey;
+.home-list{
+    padding-left:20px;
 }
 
-.intro-box {
-  background: #eeeeee;
-  padding: 25px;
-  border-radius: 15px;
-  width: 70%;
-  margin: 30px auto;
-  line-height: 1.6;
-  text-align: justify;
+.home-list li{
+    margin-bottom:14px;
+    color:#444;
+}
+
+.home-list li::marker{
+    color:#8b1e5b;
+}
+
+.home-footer{
+    margin-top:50px;
+    text-align:center;
+    color:#888;
+    font-size:13px;
+}
+
+/* ========================= */
+/* INTRODUCTION */
+/* ========================= */
+
+.intro-main{
+    line-height:1.8;
+}
+
+.intro-card{
+    min-height:260px;
+    height:100%;
+}
+
+.intro-card p{
+    color:#444;
+    line-height:1.7;
+}
+
+.intro-highlight{
+    background:#f3e6ee;
+    border-left:6px solid #8b1e5b;
+}
+
+.intro-highlight p{
+    margin-top:10px;
+    font-size:15px;
+    line-height:1.8;
+}
+
+.intro-main h4,
+.intro-card h4,
+.intro-highlight h4{
+    color:#8b1e5b;
 }
 
 /* ========================= */
@@ -537,6 +573,10 @@ table.dataTable th.inheritance-col {
   text-align: center;
 }
 
+/* ========================= */
+/* COLUMNA IMPACT */
+/* ========================= */
+
 .impact-high {
   background: #c0392b;
 }
@@ -580,7 +620,7 @@ table.dataTable th.inheritance-col {
 }
 
 /* ========================= */
-/* DROP TABS ESTILO REAL */
+/* DROP TABS */
 /* ========================= */
 
 .nav-tabs {
@@ -736,7 +776,7 @@ table.dataTable th.inheritance-col {
 
 
 /* =========================
-   OmicsExplorer switches
+        switches
 ========================= */
 
 .omics-switch .pretty.p-switch.p-fill input:checked ~ .state:before{
@@ -779,7 +819,7 @@ table.dataTable th.inheritance-col {
 
 
 /* =========================
-   Sliders
+           sliders
 ========================= */
 
 .irs-bar{
@@ -805,7 +845,7 @@ table.dataTable th.inheritance-col {
 
 
 /* =========================
-   Pretty checkbox OmicsExplorer
+         checkbox
 ========================= */
 
 /* NO tocar switches */
@@ -844,10 +884,6 @@ table.dataTable th.inheritance-col {
     border-color:#a8326f !important;
 }
 
-
-/* =========================
-   Checkbox labels
-========================= */
 
 .pretty .state label{
     font-weight:500;

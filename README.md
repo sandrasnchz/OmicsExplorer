@@ -1,6 +1,11 @@
 # OmicsExplorer
 
 OmicsExplorer is an interactive Shiny-based application for the visualization and exploration of genomic and transcriptomic analysis results.
+<p align="center">
+  <img src="app/www/logo1.png" width="900">
+</p>
+
+
 
 The platform was developed in the context of rare disease diagnostics and omics data interpretation, providing an intuitive graphical interface for non-computational users.
 

@@ -501,22 +501,58 @@ table.dataTable th.inheritance-col {
 /* FILTROS DATA VIEWER */
 /* ========================= */
 
-.filter-box {
-  background: #eeeeee;
-  padding: 25px;
-  border-radius: 20px;
-  margin-bottom: 20px;
+.filter-box{
+    background:#eeeeee;
+    padding:25px;
+    border-radius:20px;
+    margin-bottom:20px;
 }
 
-/* Títulos de inputs */
-.filter-box label {
-  font-weight: 600;
-  color: #333;
+.filter-box label{
+    font-weight:700;
+    color:#8b1e5b;
+    margin-bottom:8px;
 }
 
-/* Espaciado inputs */
-.filter-box .form-group {
-  margin-bottom: 15px;
+.filter-box .form-group{
+    margin-bottom:0;
+}
+
+/* caja búsqueda */
+.filter-box .form-control{
+
+    width:320px;
+
+    height:48px;
+
+    border:none !important;
+    border-radius:14px !important;
+
+    background:white !important;
+
+    padding:0 15px !important;
+
+    font-size:14px;
+
+    box-shadow:0 2px 8px rgba(0,0,0,.05);
+
+    transition:.2s;
+}
+
+/* hover */
+.filter-box .form-control:hover{
+
+    box-shadow:0 4px 12px rgba(139,30,91,.12);
+}
+
+/* focus */
+.filter-box .form-control:focus{
+
+    outline:none !important;
+
+    box-shadow:
+        0 0 0 3px rgba(139,30,91,.15),
+        0 4px 12px rgba(139,30,91,.12) !important;
 }
 
 .download-box {

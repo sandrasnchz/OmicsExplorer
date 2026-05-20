@@ -522,61 +522,61 @@ plotsServer <- function(id, pool){
         filter(!is.na(zscore))
       
       validate(
-        need(nrow(df) > 0,
-             "No z-score data loaded")
-      )
+        need(
+          nrow(df) > 0,
+          "No z-score data loaded"))
+      
+      n_genes <- min(40, nrow(df))
       
       df_plot <- df %>%
         arrange(zscore) %>%
-        slice(c(1:20, (n()-19):n()))
+        slice_head(n = n_genes)
       
       p <- ggplot(
         df_plot,
         aes(
           x = reorder(gene_name, zscore),
           y = zscore,
-          
           text = paste0(
             "Gene: ", gene_name,
-            "<br>Z-score: ",
-            round(zscore, 2),
-            "<br>padj: ",
-            signif(padj, 3)
+            "<br>Z-score: ", round(zscore,2),
+            "<br>padj: ", signif(padj,3)
           )
         )
       ) +
         
         geom_hline(
-          yintercept = c(-3, 3),
-          linetype = "dashed",
-          color = "#8b1e5b"
+          yintercept = c(-3,3),
+          linetype="dashed",
+          color="#8b1e5b"
         ) +
         
         geom_point(
-          color = "#2c7fb8",
-          size = 3
+          color="#2c7fb8",
+          size=3
         ) +
         
         coord_flip() +
         
-        theme_bw(base_size = 13) +
+        theme_bw(base_size=13) +
         
         theme(
-          panel.grid.minor = element_blank(),
+          panel.grid.minor=element_blank(),
           
-          plot.title = element_text(
-            color = "#8b1e5b",
-            face = "bold"
-          )
+          plot.title=element_text(
+            color="#8b1e5b",
+            face="bold")
         ) +
         
         labs(
-          title = "Aberrant expression z-scores",
-          x = "Gene",
-          y = "Z-score"
-        )
+          title="Aberrant expression z-scores",
+          x="Gene",
+          y="Z-score")
       
-      ggplotly(p, tooltip = "text")
+      ggplotly(
+        p,
+        tooltip="text"
+      )
     })
     
     # =====================================================

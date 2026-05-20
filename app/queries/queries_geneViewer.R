@@ -26,11 +26,15 @@ get_variants_by_gene <- function(pool, gene){
     query <- paste0("
       
       WITH wes AS (
-        SELECT *, 'WES' AS src FROM read_parquet('../data/variants/wes*.parquet')
+        SELECT *, 'WES' AS src 
+        FROM read_parquet('../data/variants/wes*.parquet')
       ),
+      
       wgs AS (
-        SELECT *, 'WGS' AS src FROM read_parquet('../data/variants/wgs*.parquet')
+        SELECT *, 'WGS' AS src 
+        FROM read_parquet('../data/variants/wgs*.parquet')
       ),
+      
       combined AS (
         SELECT * FROM wes
         UNION ALL
@@ -39,23 +43,25 @@ get_variants_by_gene <- function(pool, gene){
       
       normalized AS (
         SELECT *,
-        
-          REPLACE(CHILD_GT,'|','/') AS CHILD_GT_N,
-          REPLACE(PARENT1_GT,'|','/') AS P1_GT_N,
-          REPLACE(PARENT2_GT,'|','/') AS P2_GT_N
-          
+        REPLACE(CHILD_GT,'|','/') AS CHILD_GT_N,
+        REPLACE(PARENT1_GT,'|','/') AS P1_GT_N,
+        REPLACE(PARENT2_GT,'|','/') AS P2_GT_N
         FROM combined
       )
       
       SELECT DISTINCT
-        ID, CHROM, POS, REF, ALT,
+        ID,
+        CHROM,
+        POS,
+        REF,
+        ALT,
         UPPER(SYMBOL) AS \"Gene name\",
         Gene AS \"Gene ID\",
         OMIM_id
         
       FROM normalized
       
-      WHERE LOWER(SYMBOL) LIKE LOWER('%", gene, "%')
+      WHERE LOWER(SYMBOL)=LOWER('", gene, "')
       
     ")
     
@@ -68,7 +74,7 @@ get_variants_by_gene <- function(pool, gene){
         Gene AS \"Gene ID\",
         OMIM_id
       FROM read_parquet('../data/variants/wes*.parquet')
-      WHERE LOWER(SYMBOL) LIKE LOWER('%", gene, "%')
+      WHERE LOWER(SYMBOL)=LOWER('", gene, "')
     ")
     
   } else if(has_wgs){
@@ -80,7 +86,7 @@ get_variants_by_gene <- function(pool, gene){
         Gene AS \"Gene ID\",
         OMIM_id
       FROM read_parquet('../data/variants/wgs*.parquet')
-      WHERE LOWER(SYMBOL) LIKE LOWER('%", gene, "%')
+      WHERE LOWER(SYMBOL)=LOWER('", gene, "')
     ")
   }
   
@@ -113,7 +119,7 @@ get_gene_info_by_gene <- function(pool, gene){
       
     FROM read_parquet('../data/variants/*.parquet')
     
-    WHERE LOWER(SYMBOL) LIKE LOWER('%", gene, "%')
+    WHERE LOWER(SYMBOL) = LOWER('", gene, "')
     
   ")
   

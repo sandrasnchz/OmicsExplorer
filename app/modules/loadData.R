@@ -73,8 +73,20 @@ loadUI <- function(id){
           div(class="section-title-big", "Loaded datasets")
       ),
       
+      div(
+        class = "load-info",
+        "Large datasets (e.g. WGS variants) may require additional processing time after upload. ",
+        "The upload is fully completed only when the dataset appears in the table below. ",
+        "Once listed, the data are ready to use throughout the application."
+      ),
+      
       div(class="table-box",
-          withSpinner(DTOutput(ns("table")))
+          withSpinner(
+            DTOutput(ns("table")),
+            type=4,
+            color="#8b1e5b"
+          ),
+          
       )
   )
 }
@@ -239,9 +251,9 @@ loadServer <- function(id){
     }
     
     # ==========================
-    # LOAD EXISTING FILES
+    # REFRESH FILE LIST
     # ==========================
-    load_existing_files <- function(){
+    refresh_files <- function(){
       
       folders <- c(
         "../data/variants",
@@ -257,7 +269,10 @@ loadServer <- function(id){
         
         if(!dir.exists(folder)) next
         
-        files <- list.files(folder, full.names = TRUE)
+        files <- list.files(
+          folder,
+          full.names = TRUE
+        )
         
         if(length(files) == 0) next
         
@@ -278,13 +293,21 @@ loadServer <- function(id){
         all_files[[length(all_files)+1]] <- bind_rows(df)
       }
       
-      if(length(all_files) > 0){
-        rv$files_info <- bind_rows(all_files)
+      rv$files_info <- if(length(all_files) > 0){
+        bind_rows(all_files)
+      } else {
+        data.frame(
+          id=character(),
+          File=character(),
+          Type=character(),
+          Source=character(),
+          path=character(),
+          stringsAsFactors=FALSE
+        )
       }
     }
     
-    # Ejecutar al iniciar
-    load_existing_files()
+    refresh_files()
     
     # -------------------------
     # GENERIC UPLOAD (TABULAR)
@@ -300,9 +323,7 @@ loadServer <- function(id){
         remove_existing_files(folder, replace_pattern)
         
         path <- save_parquet(dt, folder, prefix)
-        id <- paste0(prefix, "_", as.integer(Sys.time()))
-        
-        add_file(id, file_input$name, type, source, path)
+        refresh_files()
         
         showNotification(
           paste("Loaded:", file_input$name, "-", nrow(dt), "rows imported"),
@@ -350,9 +371,7 @@ loadServer <- function(id){
         }
         
         # guardar en tabla reactiva
-        id <- paste0(prefix, "_", as.integer(Sys.time()))
-        
-        add_file(id, file_input$name, type, source, dest_path)
+        refresh_files()
         
         showNotification("File uploaded correctly", type = "message")
         
@@ -519,9 +538,7 @@ loadServer <- function(id){
         
         path <- save_parquet(dt_clean, "../data/rnaseq", paste0("sample_", sample_name))
         
-        id <- paste0("rna_", as.integer(Sys.time()))
-        
-        add_file(id, input$rna_tpm$name, "RNA", sample_name, path)
+        refresh_files()
         
         showNotification(
           paste("Loaded:", input$rna_tpm$name),
@@ -587,8 +604,7 @@ loadServer <- function(id){
         file.remove(row$path)
       }
       
-      rv$files_info <- rv$files_info %>%
-        filter(id != input$delete_row)
+      refresh_files()
     })
     
     # =====================
@@ -621,11 +637,12 @@ loadServer <- function(id){
         class = "compact stripe",
         
         options = list(
-          pageLength = 5,
+          
+          pageLength = 12,
+          lengthChange = FALSE,
           autoWidth = TRUE,
           
-          # Layout más limpio
-          dom = '<"top"lf>rt<"bottom"ip>',
+          dom = 't',
           
           columnDefs = list(
             list(orderable = FALSE, targets = 3),

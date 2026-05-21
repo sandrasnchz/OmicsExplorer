@@ -1,5 +1,8 @@
 # modules/plots.R
 
+COLOR_BLUE <- "#2c7fb8"
+COLOR_MAGENTA <- "#8b1e5b"
+
 # ======================
 # UI
 # ======================

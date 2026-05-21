@@ -335,23 +335,40 @@ dataViewerUI <- function(id){
             fluidRow(
               
               column(
-                12,
+                6,
                 
                 prettyCheckboxGroup(
                   ns("drop_filters"),
                   "DROP filters",
                   
-                  choices = c(
-                    "Aberrant Expression" = "expr",
-                    "Aberrant Splicing" = "splicing",
-                    "MAE" = "mae"
+                  choices=c(
+                    "Aberrant Expression"="expr",
+                    "Aberrant Splicing"="splicing",
+                    "MAE"="mae"
                   ),
                   
-                  inline = TRUE,
-                  shape = "curve",
+                  inline=TRUE,
+                  shape="curve",
                   icon=icon("check")
                 )
+              ),
+              
+              column(
+                6,
                 
+                prettyCheckboxGroup(
+                  ns("tpm_filters"),
+                  "TPM outliers",
+                  
+                  choices=c(
+                    "Overexpressed"="over",
+                    "Infraexpressed"="under"
+                  ),
+                  
+                  inline=TRUE,
+                  shape="curve",
+                  icon=icon("check")
+                )
               )
             )
           )
@@ -1449,55 +1466,124 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
       
       df <- get_rna(pool)
       
-      tpm_col <- grep("^tpm$", colnames(df), value = TRUE)
+      # ===== TPM RENOMBRE =====
+      tpm_col <- grep("^tpm$", names(df), value=TRUE)
       
-      if(length(tpm_col) == 1){
-        files_sample <- list.files("../data/rnaseq", pattern="sample_", full.names=TRUE)
+      if(length(tpm_col)==1){
         
-        sample_name <- tools::file_path_sans_ext(basename(files_sample[1]))
-        sample_name <- sub("_[0-9]{8}_[0-9]{6}$", "", sample_name)
+        files_sample <- list.files(
+          "../data/rnaseq",
+          pattern="sample_",
+          full.names=TRUE
+        )
         
-        new_name <- paste0(sample_name, "_tpm")
+        sample_name <- tools::file_path_sans_ext(
+          basename(files_sample[1])
+        )
         
-        colnames(df)[colnames(df) == "tpm"] <- new_name
+        sample_name <- sub(
+          "_[0-9]{8}_[0-9]{6}$",
+          "",
+          sample_name
+        )
+        
+        names(df)[names(df)=="tpm"] <- paste0(
+          sample_name,
+          "_tpm"
+        )
       }
       
+      # ===== DROP =====
       drop_flags <- get_drop_flags(pool)
       
       df <- df %>%
-        left_join(drop_flags, by = c("gene_name" = "gene")) %>%
+        left_join(
+          drop_flags,
+          by=c("gene_name"="gene")
+        ) %>%
         mutate(
-          drop_expr = replace_na(drop_expr, FALSE),
-          drop_splicing = replace_na(drop_splicing, FALSE),
-          drop_mae = replace_na(drop_mae, FALSE),
+          drop_expr=replace_na(drop_expr,FALSE),
+          drop_splicing=replace_na(drop_splicing,FALSE),
+          drop_mae=replace_na(drop_mae,FALSE),
           
-          DROP_status = paste0(
-            "expr: ", drop_expr, "; ",
-            "splicing: ", drop_splicing, "; ",
-            "mae: ", drop_mae
+          DROP_status=paste0(
+            "expr: ",drop_expr,"<br>",
+            "splicing: ",drop_splicing,"<br>",
+            "mae: ",drop_mae
           )
         )
       
+      # ===== GENE FILTER =====
       if(!is.null(selected_gene()) && selected_gene()!=""){
-        df <- df %>% filter(toupper(gene_name) == toupper(selected_gene()))
+        df <- df %>%
+          filter(
+            toupper(gene_name)==toupper(selected_gene())
+          )
       }
       
       if(nzchar(input$gene)){
-        df <- df %>% filter(toupper(gene_name) == toupper(input$gene))
+        df <- df %>%
+          filter(
+            toupper(gene_name)==toupper(input$gene)
+          )
       }
       
-      if(length(input$drop_filters) > 0){
-        if("expr" %in% input$drop_filters){
-          df <- df %>% filter(drop_expr == TRUE)
+      # ===== DROP FILTERS =====
+      if("expr" %in% input$drop_filters){
+        df <- df %>% filter(drop_expr)
+      }
+      
+      if("splicing" %in% input$drop_filters){
+        df <- df %>% filter(drop_splicing)
+      }
+      
+      if("mae" %in% input$drop_filters){
+        df <- df %>% filter(drop_mae)
+      }
+      
+      # ===== TPM FILTERS =====
+      
+      sample_col <- grep(
+        "_tpm$",
+        names(df),
+        value=TRUE
+      )
+      
+      if(length(sample_col)==1){
+        
+        sample_col <- sample_col[1]
+        
+        df <- df %>%
+          mutate(
+            sample=as.numeric(.data[[sample_col]]),
+            minv=as.numeric(.data[["min_TPM"]]),
+            maxv=as.numeric(.data[["max_TPM"]])
+          )
+        
+        if(identical(input$tpm_filters,"over")){
+          df <- df %>%
+            filter(sample>maxv)
         }
         
-        if("splicing" %in% input$drop_filters){
-          df <- df %>% filter(drop_splicing == TRUE)
+        if(identical(input$tpm_filters,"under")){
+          df <- df %>%
+            filter(sample<minv)
         }
         
-        if("mae" %in% input$drop_filters){
-          df <- df %>% filter(drop_mae == TRUE)
+        if(length(input$tpm_filters)==2){
+          df <- df %>%
+            filter(
+              sample>maxv |
+                sample<minv
+            )
         }
+        
+        df <- df %>%
+          select(
+            -sample,
+            -minv,
+            -maxv
+          )
       }
       
       df
@@ -1510,7 +1596,7 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
       
       rna_files()
       
-      df <- get_rna(pool)
+      df <- rna_filtered_data()
       
       if(nrow(df)==0){
         return(datatable(data.frame(Message="No RNA data")))
@@ -1532,25 +1618,7 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
         colnames(df)[colnames(df) == "tpm"] <- new_name
       }
       
-      # ===== JOIN DROP =====
-      drop_flags <- get_drop_flags(pool)
-      
-      df <- df %>%
-        left_join(drop_flags, by = c("gene_name" = "gene"))
-      
-      # ===== CREAR COLUMNA RESUMEN =====
-      df <- df %>%
-        mutate(
-          drop_expr = replace_na(drop_expr, FALSE),
-          drop_splicing = replace_na(drop_splicing, FALSE),
-          drop_mae = replace_na(drop_mae, FALSE),
-          
-          DROP_status = paste0(
-            "expr: ", drop_expr, "<br>",
-            "splicing: ", drop_splicing, "<br>",
-            "mae: ", drop_mae
-          )
-        )
+ 
       
       # ===== FILTROS =====
       if(!is.null(selected_gene()) && selected_gene()!=""){
@@ -1561,25 +1629,7 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
         df <- df %>% filter(toupper(gene_name) == toupper(input$gene))
       }
       
-      
-      # ===== DROP FILTERS =====
-      
-      if(length(input$drop_filters) > 0){
-        
-        if("expr" %in% input$drop_filters){
-          df <- df %>% filter(drop_expr == TRUE)
-        }
-        
-        if("splicing" %in% input$drop_filters){
-          df <- df %>% filter(drop_splicing == TRUE)
-        }
-        
-        if("mae" %in% input$drop_filters){
-          df <- df %>% filter(drop_mae == TRUE)
-        }
-        
-      }
-      
+  
       
       # ===== HIDDEN COLUMN =====
       df$gene_hidden <- df$gene_name
@@ -1593,14 +1643,21 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
         selection = "none",
         extensions = 'FixedHeader',
         options=list(
-          scrollX = TRUE,
-          pageLength = 10,
-          fixedHeader = TRUE,
-          autoWidth = TRUE,
-          initComplete = JS("function(settings, json) { this.api().columns.adjust(); }"),
-          drawCallback = JS("function(settings) { this.api().columns.adjust(); }"),
+          scrollX=TRUE,
+          scrollCollapse=TRUE,
+          pageLength=10,
+          fixedHeader=TRUE,
+          autoWidth=TRUE,
+          
+          initComplete=JS("function(settings,json){this.api().columns.adjust();}"),
+          
+          drawCallback=JS("function(settings){this.api().columns.adjust();}"),
+          
           columnDefs=list(
-            list(targets = which(colnames(df) == "gene_hidden") - 1, visible = FALSE)
+            list(
+              targets=which(colnames(df)=="gene_hidden")-1,
+              visible=FALSE
+            )
           )
         ),
         

@@ -65,13 +65,22 @@ dataViewerUI <- function(id){
               column(
                 4,
                 
-                sliderInput(
-                  ns("dp"),
-                  "DP range",
-                  min=0,
-                  max=100,
-                  value=c(10,100),
-                  step=1
+                div(
+                  
+                  numericInput(
+                    ns("dp"),
+                    "Min DP",
+                    value=90,
+                    min=0,
+                    step=1,
+                    width="80px"
+                  ),
+                  
+                  actionButton(
+                    ns("apply_dp"),
+                    "Apply",
+                    class="btn-download"
+                  )
                 )
               ),
               
@@ -398,15 +407,51 @@ dataViewerServer <- function(id, pool, selected_gene){
     
     navigating <- reactiveVal(FALSE)
     
+    dp_filter <- reactiveVal(90)
+    
+    observeEvent(input$apply_dp,{
+      
+      dp_filter(
+        input$dp
+      )
+      
+    })
+    
     # =====================
     # RESET CONTROLADO
     # =====================
-    observeEvent(input$main_tabs, {
+    observeEvent(input$main_tabs,{
+      
       if(!navigating()){
+        
         selected_gene(NULL)
+        
+        updateTextInput(
+          session,
+          "gene",
+          value=""
+        )
       }
       navigating(FALSE)
     })
+    
+    # =====================
+    # SINCRONIZAR INPUT GENE
+    # =====================
+    observeEvent(selected_gene(),{
+      
+      if(
+        !is.null(selected_gene()) &&
+        selected_gene() != ""
+      ){
+        
+        updateTextInput(
+          session,
+          "gene",
+          value = selected_gene()
+        )
+      }
+    }, ignoreInit=TRUE)
     
     
     # =====================
@@ -516,11 +561,11 @@ dataViewerServer <- function(id, pool, selected_gene){
         "<ul class='nav nav-tabs variant-detail-tabs'>",
         "<li class='nav-item'><a class='nav-link active freq-tab' data-target='#geno-detail'>Trio genotypes</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#pop-detail'>Population frequencies</a></li>",
-        "<li class='nav-item'><a class='nav-link freq-tab' data-target='#gnom-detail'>gnomAD frequencies</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#pred-detail'>Predictors</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#trans-detail'>Transcript / Protein</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#annot-detail'>Transcript annotations</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#hgvs-detail'>HGVS info</a></li>",
+        "<li class='nav-item'><a class='nav-link freq-tab' data-target='#gene-detail'>Gene information</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#motif-detail'>Regulation and motifs</a></li>",
         "</ul>",
         "</div>",
@@ -537,6 +582,13 @@ dataViewerServer <- function(id, pool, selected_gene){
         "</div>",
         
         "<div class='tab-pane' id='pop-detail'>",
+        "<ul class='nav nav-tabs'>",
+        "<li class='nav-item'><a class='nav-link active subtab' data-target='#general-detail'>General population</a></li>",
+        "<li class='nav-item'><a class='nav-link subtab' data-target='#gnom-detail'>gnomAD frequencies</a></li>",
+        "</ul>",
+        "<div class='tab-content' style='margin-top:10px'>",
+        
+        "<div class='tab-pane active' id='general-detail'>",
         "AF: ", get_value(row, "AF"), "<br>",
         "AFR: ", get_value(row, "AFR_AF"), "<br>",
         "AMR: ", get_value(row, "AMR_AF"), "<br>",
@@ -547,6 +599,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         "EA: ", get_value(row, "EA_AF"),
         "</div>",
         
+
         "<div class='tab-pane' id='gnom-detail'>",
         "AF: ", get_value(row, "gnomAD_AF"), "<br>",
         "AFR: ", get_value(row, "gnomAD_AFR_AF"), "<br>",
@@ -556,6 +609,8 @@ dataViewerServer <- function(id, pool, selected_gene){
         "FIN: ", get_value(row, "gnomAD_FIN_AF"), "<br>",
         "NFE: ", get_value(row, "gnomAD_NFE_AF"), "<br>",
         "OTH: ", get_value(row, "gnomAD_OTH_AF"),
+        "</div>",
+        "</div>",
         "</div>",
         
         "<div class='tab-pane' id='pred-detail'>",
@@ -616,8 +671,13 @@ dataViewerServer <- function(id, pool, selected_gene){
         "HGVSp snpEff: ", get_value(row, "HGVSp_snpEff"),
         "</div>",
         
+        "<div class='tab-pane' id='gene-detail'>",
+        "<b>Gene information</b><br><br>",
+        " ", get_value(row, "Function_description"),"<br><br>",
+        "OMIM ID: ", get_value(row, "OMIM_id"), "</div>",
+        
         "<div class='tab-pane' id='motif-detail'>",
-        "<b>Regulación y motifs</b><br><br>",
+        "<b>Regulation y motifs</b><br><br>",
         "Motif name: ", get_value(row, "MOTIF_NAME"), "<br>",
         "Motif position: ", get_value(row, "MOTIF_POS"), "<br>",
         "High information position: ", get_value(row, "HIGH_INF_POS"), "<br>",
@@ -655,10 +715,28 @@ dataViewerServer <- function(id, pool, selected_gene){
     )
     
     variants_all <- reactive({
+      
       req(pool)
-      variants_files()
-      get_variants_with_inheritance(pool) %>%
-        mutate(.variant_row_key = row_number())
+      
+      # fuerza invalidación cuando cambian archivos
+      files <- variants_files()
+      
+      validate(
+        need(length(files) > 0,
+             "No variant files loaded")
+      )
+      
+      # limpiar posibles resultados anteriores
+      gc()
+      
+      isolate({
+        
+        get_variants_with_inheritance(pool) %>%
+          mutate(
+            .variant_row_key = row_number()
+          )
+        
+      })
     })
     
     format_inheritance_display <- function(x){
@@ -695,13 +773,18 @@ dataViewerServer <- function(id, pool, selected_gene){
           select(-MAX_AF_FILTER)
       }
       
-      if(!is.null(input$dp) && !identical(input$dp, c(0, 1000))){
+      if(!is.null(dp_filter())){
+        
         df <- df %>%
-          mutate(CHILD_DP_FILTER = suppressWarnings(as.numeric(CHILD_DP))) %>%
+          mutate(
+            CHILD_DP_FILTER=
+              suppressWarnings(
+                as.numeric(CHILD_DP)
+              )
+          ) %>%
           filter(
             is.na(CHILD_DP_FILTER) |
-              (CHILD_DP_FILTER >= input$dp[1] &
-                 CHILD_DP_FILTER <= input$dp[2])
+              CHILD_DP_FILTER >= dp_filter()
           ) %>%
           select(-CHILD_DP_FILTER)
       }
@@ -725,17 +808,26 @@ dataViewerServer <- function(id, pool, selected_gene){
         df <- df %>% filter(source %in% input$source)
       }
       
-      if(length(input$inheritance_source) > 0 && !setequal(input$inheritance_source, all_inheritance_sources)){
-        df <- df %>%
-          filter(inheritance_source %in% input$inheritance_source)
-      }
+      # =====================
+      # INHERITANCE FILTER
+      # =====================
       
-      if(length(input$de_novo_source) > 0 && !setequal(input$de_novo_source, all_de_novo_sources)){
-        df <- df %>%
-          filter(inheritance_type != "de_novo" | inheritance_source %in% input$de_novo_source)
-      } else if(length(input$de_novo_source) == 0){
-        df <- df %>% filter(inheritance_type != "de_novo")
-      }
+      selected_main <- input$inheritance_source
+      selected_denovo <- input$de_novo_source
+      
+      df <- df %>%
+        filter(
+          (inheritance_source %in% selected_main &
+             inheritance_type != "de_novo") |
+            
+            (inheritance_source %in% selected_denovo &
+               inheritance_type == "de_novo") |
+            
+            (inheritance_source %in% intersect(c("AD","XD"), selected_main) &
+               inheritance_type == "de_novo")
+        )
+      
+      if(nrow(df)==0) df <- df[0,]
       
       if(input$hide_intergenic){
         df <- df %>%
@@ -824,13 +916,18 @@ dataViewerServer <- function(id, pool, selected_gene){
             select(-MAX_AF_FILTER)
         }
         
-        if(!is.null(input$dp) && !identical(input$dp, c(0, 1000))){
+        if(!is.null(dp_filter())){
+          
           df <- df %>%
-            mutate(CHILD_DP_FILTER = suppressWarnings(as.numeric(CHILD_DP))) %>%
+            mutate(
+              CHILD_DP_FILTER=
+                suppressWarnings(
+                  as.numeric(CHILD_DP)
+                )
+            ) %>%
             filter(
               is.na(CHILD_DP_FILTER) |
-                (CHILD_DP_FILTER >= input$dp[1] &
-                   CHILD_DP_FILTER <= input$dp[2])
+                CHILD_DP_FILTER >= dp_filter()
             ) %>%
             select(-CHILD_DP_FILTER)
         }
@@ -854,17 +951,26 @@ dataViewerServer <- function(id, pool, selected_gene){
           df <- df %>% filter(source %in% input$source)
         }
         
-        if(length(input$inheritance_source) > 0 && !setequal(input$inheritance_source, all_inheritance_sources)){
-          df <- df %>%
-            filter(inheritance_source %in% input$inheritance_source)
-        }
+        # =====================
+        # INHERITANCE FILTER
+        # =====================
         
-        if(length(input$de_novo_source) > 0 && !setequal(input$de_novo_source, all_de_novo_sources)){
-          df <- df %>%
-            filter(inheritance_type != "de_novo" | inheritance_source %in% input$de_novo_source)
-        } else if(length(input$de_novo_source) == 0){
-          df <- df %>% filter(inheritance_type != "de_novo")
-        }
+        selected_main <- input$inheritance_source
+        selected_denovo <- input$de_novo_source
+        
+        df <- df %>%
+          filter(
+            (inheritance_source %in% selected_main &
+               inheritance_type != "de_novo") |
+              
+              (inheritance_source %in% selected_denovo &
+                 inheritance_type == "de_novo") |
+              
+              (inheritance_source %in% intersect(c("AD","XD"), selected_main) &
+                 inheritance_type == "de_novo")
+          )
+        
+        if(nrow(df)==0) df <- df[0,]
         
         if(input$hide_intergenic){
           df <- df %>%
@@ -1308,12 +1414,40 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
       }
     })
     
-    rna_filtered_data <- reactive({
-      df <- get_rna(pool)
+    rna_files <- reactivePoll(
       
-      if(nrow(df) == 0){
-        return(df)
+      intervalMillis = 1000,
+      session = session,
+      
+      checkFunc = function(){
+        
+        files <- Sys.glob("../data/rnaseq/*.parquet")
+        
+        if(length(files)==0){
+          return("")
+        }
+        
+        info <- file.info(files)
+        
+        paste(
+          files,
+          info$mtime,
+          info$size,
+          collapse="|"
+        )
+      },
+      
+      valueFunc=function(){
+        Sys.glob("../data/rnaseq/*.parquet")
       }
+      
+    )
+    
+    rna_filtered_data <- reactive({
+      
+      rna_files()
+      
+      df <- get_rna(pool)
       
       tpm_col <- grep("^tpm$", colnames(df), value = TRUE)
       
@@ -1373,6 +1507,8 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
     # RNA DATA
     # =====================
     output$rna <- renderDT({
+      
+      rna_files()
       
       df <- get_rna(pool)
       

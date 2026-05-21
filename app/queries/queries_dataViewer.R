@@ -41,12 +41,42 @@ get_variants_with_inheritance <- function(pool){
         *,
         '%s' AS source,
 
-        CASE
-          WHEN inheritance_source IN ('AD','XD') AND CHILD_GT_N = '0/1' AND P1_GT_N = '0/0' AND P2_GT_N = '0/0' THEN 'de_novo'
-          WHEN inheritance_source = 'AR' AND CHILD_GT_N = '1/1' AND P1_GT_N = '0/1' AND P2_GT_N = '0/1' THEN 'recessive'
-          WHEN inheritance_source != 'AR' AND CHILD_GT_N = '0/1' AND (P1_GT_N = '0/1' OR P2_GT_N = '0/1') THEN 'dominant'
-          ELSE ''
-        END AS inheritance_type,
+       CASE
+
+        -- AR heredada
+        WHEN inheritance_source='AR'
+             AND CHILD_GT_N='1/1'
+             AND P1_GT_N='0/1'
+             AND P2_GT_N='0/1'
+        THEN 'recessive'
+      
+        -- AD/XD de novo
+        WHEN inheritance_source IN ('AD','XD')
+             AND CHILD_GT_N='0/1'
+             AND P1_GT_N='0/0'
+             AND P2_GT_N='0/0'
+        THEN 'de_novo'
+      
+        -- AD/XD heredada
+        WHEN inheritance_source IN ('AD','XD')
+             AND CHILD_GT_N='0/1'
+             AND (
+                  P1_GT_N='0/1'
+                  OR P2_GT_N='0/1'
+             )
+        THEN 'dominant'
+      
+        -- XR
+        WHEN inheritance_source='XR'
+        THEN 'x_recessive'
+      
+        -- MT
+        WHEN inheritance_source='MT'
+        THEN 'mitochondrial'
+      
+        ELSE ''
+      
+      END AS inheritance_type,
 
         CONCAT(
           CASE
@@ -116,11 +146,41 @@ get_variants_with_inheritance <- function(pool){
         
         -- INHERITANCE TYPE
         CASE
-          WHEN inheritance_source IN ('AD','XD') AND CHILD_GT_N = '0/1' AND P1_GT_N = '0/0' AND P2_GT_N = '0/0' THEN 'de_novo'
-          WHEN inheritance_source = 'AR' AND CHILD_GT_N = '1/1' AND P1_GT_N = '0/1' AND P2_GT_N = '0/1' THEN 'recessive'
-          WHEN inheritance_source != 'AR' AND CHILD_GT_N = '0/1' AND (P1_GT_N = '0/1' OR P2_GT_N = '0/1') THEN 'dominant'
-          ELSE ''
-        END AS inheritance_type,
+
+        -- AR heredada
+        WHEN inheritance_source='AR'
+             AND CHILD_GT_N='1/1'
+             AND P1_GT_N='0/1'
+             AND P2_GT_N='0/1'
+        THEN 'recessive'
+      
+        -- AD/XD de novo
+        WHEN inheritance_source IN ('AD','XD')
+             AND CHILD_GT_N='0/1'
+             AND P1_GT_N='0/0'
+             AND P2_GT_N='0/0'
+        THEN 'de_novo'
+      
+        -- AD/XD heredada
+        WHEN inheritance_source IN ('AD','XD')
+             AND CHILD_GT_N='0/1'
+             AND (
+                  P1_GT_N='0/1'
+                  OR P2_GT_N='0/1'
+             )
+        THEN 'dominant'
+      
+        -- XR
+        WHEN inheritance_source='XR'
+        THEN 'x_recessive'
+      
+        -- MT
+        WHEN inheritance_source='MT'
+        THEN 'mitochondrial'
+      
+        ELSE ''
+      
+      END AS inheritance_type,
         
         -- INHERITANCE TEXT
         CONCAT(

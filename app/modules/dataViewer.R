@@ -572,11 +572,40 @@ dataViewerServer <- function(id, pool, selected_gene){
       htmltools::htmlEscape(as.character(value))
     }
     
+    source_read_evidence_html <- function(row){
+      if(!"source" %in% names(row) || row[["source"]][1] != "BOTH"){
+        return("")
+      }
+      
+      paste0(
+        "<div class='tab-pane' id='source-evidence-detail'>",
+        "<table class='table table-sm table-bordered genotype-table'>",
+        "<tr><th>Source</th><th>Sample</th><th>GT</th><th>DP</th><th>AD</th><th>GQ</th></tr>",
+        "<tr><td rowspan='3'><b>WGS</b></td><td><b>P1</b></td><td>", get_value(row, "WGS_PARENT1_GT"), "</td><td>", get_value(row, "WGS_PARENT1_DP"), "</td><td>", get_value(row, "WGS_PARENT1_AD"), "</td><td>", get_value(row, "WGS_PARENT1_GQ"), "</td></tr>",
+        "<tr><td><b>P2</b></td><td>", get_value(row, "WGS_PARENT2_GT"), "</td><td>", get_value(row, "WGS_PARENT2_DP"), "</td><td>", get_value(row, "WGS_PARENT2_AD"), "</td><td>", get_value(row, "WGS_PARENT2_GQ"), "</td></tr>",
+        "<tr><td><b>Child</b></td><td>", get_value(row, "WGS_CHILD_GT"), "</td><td>", get_value(row, "WGS_CHILD_DP"), "</td><td>", get_value(row, "WGS_CHILD_AD"), "</td><td>", get_value(row, "WGS_CHILD_GQ"), "</td></tr>",
+        "<tr><td rowspan='3'><b>WES</b></td><td><b>P1</b></td><td>", get_value(row, "WES_PARENT1_GT"), "</td><td>", get_value(row, "WES_PARENT1_DP"), "</td><td>", get_value(row, "WES_PARENT1_AD"), "</td><td>", get_value(row, "WES_PARENT1_GQ"), "</td></tr>",
+        "<tr><td><b>P2</b></td><td>", get_value(row, "WES_PARENT2_GT"), "</td><td>", get_value(row, "WES_PARENT2_DP"), "</td><td>", get_value(row, "WES_PARENT2_AD"), "</td><td>", get_value(row, "WES_PARENT2_GQ"), "</td></tr>",
+        "<tr><td><b>Child</b></td><td>", get_value(row, "WES_CHILD_GT"), "</td><td>", get_value(row, "WES_CHILD_DP"), "</td><td>", get_value(row, "WES_CHILD_AD"), "</td><td>", get_value(row, "WES_CHILD_GQ"), "</td></tr>",
+        "</table>",
+        "</div>"
+      )
+    }
+    
+    source_read_evidence_tab <- function(row){
+      if(!"source" %in% names(row) || row[["source"]][1] != "BOTH"){
+        return("")
+      }
+      
+      "<li class='nav-item'><a class='nav-link freq-tab' data-target='#source-evidence-detail'>WES/WGS read evidence</a></li>"
+    }
+    
     variant_detail_html <- function(row){
       paste0(
         "<div class='variant-detail-tabs-scroll'>",
         "<ul class='nav nav-tabs variant-detail-tabs'>",
         "<li class='nav-item'><a class='nav-link active freq-tab' data-target='#geno-detail'>Trio genotypes</a></li>",
+        source_read_evidence_tab(row),
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#pop-detail'>Population frequencies</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#pred-detail'>Predictors</a></li>",
         "<li class='nav-item'><a class='nav-link freq-tab' data-target='#trans-detail'>Transcript / Protein</a></li>",
@@ -597,6 +626,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         "<tr><td><b>Child</b></td><td>", get_value(row, "CHILD_GT"), "</td><td>", get_value(row, "CHILD_DP"), "</td><td>", get_value(row, "CHILD_AD"), "</td><td>", get_value(row, "CHILD_GQ"), "</td></tr>",
         "</table>",
         "</div>",
+        source_read_evidence_html(row),
         
         "<div class='tab-pane' id='pop-detail'>",
         "<ul class='nav nav-tabs'>",
@@ -616,7 +646,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         "EA: ", get_value(row, "EA_AF"),
         "</div>",
         
-
+        
         "<div class='tab-pane' id='gnom-detail'>",
         "AF: ", get_value(row, "gnomAD_AF"), "<br>",
         "AFR: ", get_value(row, "gnomAD_AFR_AF"), "<br>",
@@ -694,7 +724,7 @@ dataViewerServer <- function(id, pool, selected_gene){
         "OMIM ID: ", get_value(row, "OMIM_id"), "</div>",
         
         "<div class='tab-pane' id='motif-detail'>",
-        "<b>Regulation y motifs</b><br><br>",
+        "<b>Regulation and motifs</b><br><br>",
         "Motif name: ", get_value(row, "MOTIF_NAME"), "<br>",
         "Motif position: ", get_value(row, "MOTIF_POS"), "<br>",
         "High information position: ", get_value(row, "HIGH_INF_POS"), "<br>",
@@ -1080,24 +1110,30 @@ dataViewerServer <- function(id, pool, selected_gene){
           escape = FALSE,
           selection = "none",
           extensions = 'FixedHeader',
-          options = list(
-            scrollX = TRUE,
-            scrollCollapse = TRUE,
-            autoWidth = TRUE,
-            pageLength = 10,
-            fixedHeader = TRUE,
-            initComplete = JS("function(settings, json) { this.api().columns.adjust(); }"),
-            drawCallback = JS("function(settings) { this.api().columns.adjust(); }"),
-            columnDefs = list(
+          
+          options=list(
+            scrollX=TRUE,
+            scrollCollapse=TRUE,
+            pageLength=10,
+            fixedHeader=TRUE,
+            autoWidth=TRUE,
+            
+            initComplete=JS(
+              "function(settings,json){this.api().columns.adjust();}"),
+            
+            drawCallback=JS("function(settings){this.api().columns.adjust();}"),
+            
+            columnDefs=list(
               list(
-                targets = which(colnames(df) == ".variant_row_key") - 1,
-                visible = FALSE,
-                searchable = FALSE
+                targets=which(colnames(df)==".variant_row_key")-1,
+                visible=FALSE,
+                searchable=FALSE
               ),
+              
               list(
-                targets = which(colnames(df) == "inheritance") - 1,
-                width = "100px",
-                className = "inheritance-col"
+                targets=which(colnames(df)=="inheritance")-1,
+                width="100px",
+                className="inheritance-col"
               )
             )
           ),
@@ -1117,195 +1153,6 @@ var format = function(rowData){
 
   return '<div class=\"variant-detail\" id=\"variant-detail-body-'+uid+'\" data-uid=\"'+uid+'\" style=\"padding:10px\">Loading variant details...</div>';
 
-  return '<div class=\"variant-detail\" style=\"padding:10px\">' +
-
-    '<div class=\"variant-detail-tabs-scroll\">' +
-    '<ul class=\"nav nav-tabs variant-detail-tabs\">' +
-      '<li class=\"nav-item\"><a class=\"nav-link active freq-tab\" data-target=\"#geno-'+uid+'\">Trio genotypes</a></li>' +
-      '<li class=\"nav-item\"><a class=\"nav-link freq-tab\" data-target=\"#pop-'+uid+'\">Population frequencies</a></li>' +
-      '<li class=\"nav-item\"><a class=\"nav-link freq-tab\" data-target=\"#gnom-'+uid+'\">gnomAD frequencies</a></li>' +
-      '<li class=\"nav-item\"><a class=\"nav-link freq-tab\" data-target=\"#pred-'+uid+'\">Predictors</a></li>' +
-      '<li class=\"nav-item\"><a class=\"nav-link freq-tab\" data-target=\"#trans-'+uid+'\">Transcript / Protein </a></li>' +
-      '<li class=\"nav-item\"><a class=\"nav-link freq-tab\" data-target=\"#annot-'+uid+'\">Transcript annotations</a></li>' +
-      '<li class=\"nav-item\"><a class=\"nav-link freq-tab\" data-target=\"#hgvs-'+uid+'\">HGVS info</a></li>' +
-      '<li class=\"nav-item\"><a class=\"nav-link freq-tab\" data-target=\"#motif-'+uid+'\">Regulación y motifs</a></li>' +
-    '</ul>' +
-    '</div>' +
-
-    '<div class=\"tab-content\" style=\"margin-top:10px\">' +
-    
-    '<div class=\"tab-pane active\" id=\"geno-'+uid+'\">' +
-
-  '<table class=\"table table-sm table-bordered genotype-table\">' +
-
-    '<tr>' +
-      '<th></th>' +
-      '<th>GT</th>' +
-      '<th>DP</th>' +
-      '<th>AD</th>' +
-      '<th>GQ</th>' +
-    '</tr>' +
-
-    '<tr>' +
-      '<td><b>P1</b></td>' +
-      '<td>'+data['PARENT1_GT']+'</td>' +
-      '<td>'+data['PARENT1_DP']+'</td>' +
-      '<td>'+data['PARENT1_AD']+'</td>' +
-      '<td>'+data['PARENT1_GQ']+'</td>' +
-    '</tr>' +
-
-    '<tr>' +
-      '<td><b>P2</b></td>' +
-      '<td>'+data['PARENT2_GT']+'</td>' +
-      '<td>'+data['PARENT2_DP']+'</td>' +
-      '<td>'+data['PARENT2_AD']+'</td>' +
-      '<td>'+data['PARENT2_GQ']+'</td>' +
-    '</tr>' +
-
-    '<tr>' +
-      '<td><b>Child</b></td>' +
-      '<td>'+data['CHILD_GT']+'</td>' +
-      '<td>'+data['DP']+'</td>' +
-      '<td>'+data['AD']+'</td>' +
-      '<td>'+data['GQ']+'</td>' +
-    '</tr>' +
-
-   '</table>' +
-
-    '</div>' +
-    
-
-      '<div class=\"tab-pane\" id=\"pop-'+uid+'\">' +
-        'AF: '+data['AF']+'<br>' +
-        'AFR: '+data['AFR_AF']+'<br>' +
-        'AMR: '+data['AMR_AF']+'<br>' +
-        'EAS: '+data['EAS_AF']+'<br>' +
-        'EUR: '+data['EUR_AF']+'<br>' +
-        'SAS: '+data['SAS_AF']+'<br>' +
-        'AA: '+data['AA_AF']+'<br>' +
-        'EA: '+data['EA_AF'] +
-      '</div>' +
-
-      '<div class=\"tab-pane\" id=\"gnom-'+uid+'\">' +
-        'AF: '+data['gnomAD_AF']+'<br>' +
-        'AFR: '+data['gnomAD_AFR_AF']+'<br>' +
-        'AMR: '+data['gnomAD_AMR_AF']+'<br>' +
-        'ASJ: '+data['gnomAD_ASJ_AF']+'<br>' +
-        'EAS: '+data['gnomAD_EAS_AF']+'<br>' +
-        'FIN: '+data['gnomAD_FIN_AF']+'<br>' +
-        'NFE: '+data['gnomAD_NFE_AF']+'<br>' +
-        'OTH: '+data['gnomAD_OTH_AF'] +
-      '</div>' +
-
-      '<div class=\"tab-pane\" id=\"pred-'+uid+'\">' +
-
-        '<ul class=\"nav nav-tabs\">' +
-          '<li class=\"nav-item\"><a class=\"nav-link active subtab\" data-target=\"#sift-'+uid+'\">SIFT</a></li>' +
-          '<li class=\"nav-item\"><a class=\"nav-link subtab\" data-target=\"#poly-'+uid+'\">PolyPhen</a></li>' +
-          '<li class=\"nav-item\"><a class=\"nav-link subtab\" data-target=\"#mut-'+uid+'\">Mutation</a></li>' +
-          '<li class=\"nav-item\"><a class=\"nav-link subtab\" data-target=\"#meta-'+uid+'\">Meta</a></li>' +
-          '<li class=\"nav-item\"><a class=\"nav-link subtab\" data-target=\"#cadd-'+uid+'\">CADD</a></li>' +
-        '</ul>' +
-
-        '<div class=\"tab-content\" style=\"margin-top:10px\">' +
-
-          '<div class=\"tab-pane active\" id=\"sift-'+uid+'\">Score: '+data['SIFT_score']+'<br>Pred: '+data['SIFT_pred']+'</div>' +
-
-          '<div class=\"tab-pane\" id=\"poly-'+uid+'\">HDIV: '+data['Polyphen2_HDIV_score']+' ('+data['Polyphen2_HDIV_pred']+')<br>HVAR: '+data['Polyphen2_HVAR_score']+' ('+data['Polyphen2_HVAR_pred']+')</div>' +
-
-          '<div class=\"tab-pane\" id=\"mut-'+uid+'\">Taster: '+data['MutationTaster_score']+' ('+data['MutationTaster_pred']+')<br>Assessor: '+data['MutationAssessor_score']+' ('+data['MutationAssessor_pred']+')</div>' +
-
-          '<div class=\"tab-pane\" id=\"meta-'+uid+'\">MetaSVM: '+data['MetaSVM_score']+' ('+data['MetaSVM_pred']+')<br>MetaLR: '+data['MetaLR_score']+' ('+data['MetaLR_pred']+')</div>' +
-
-          '<div class=\"tab-pane\" id=\"cadd-'+uid+'\">Raw: '+data['CADD_raw']+'<br>Phred: '+data['CADD_phred']+'</div>' +
-
-        '</div>' +
-        '</div>' +
-        
-  '<div class=\"tab-pane\" id=\"trans-'+uid+'\">' +
-
-  '<b>Transcript position</b><br><br>' +
-
-  'cDNA position: '+data['cDNA_position']+'<br>' +
-  'CDS position: '+data['CDS_position']+'<br>' +
-  'Protein position: '+data['Protein_position']+'<br><br>' +
-
-  '<b>Protein change</b><br><br>' +
-
-  'Amino acids: '+data['Amino_acids']+'<br>' +
-  'Codons: '+data['Codons']+'<br><br>' +
-
-  '<b>Genomic location</b><br><br>' +
-
-  'Exon: '+data['EXON']+'<br>' +
-  'Intron: '+data['INTRON'] +
-
-'</div>' +
-
-'<div class=\"tab-pane\" id=\"annot-'+uid+'\">' +
-
-  '<b>Transcript quality</b><br><br>' +
-
-  'Canonical: '+data['CANONICAL']+'<br>' +
-  'MANE Select: '+data['MANE_sel']+'<br>' +
-  'MANE Plus Clinical: '+data['MANE_plus']+'<br>' +
-  'TSL: '+data['TSL']+'<br>' +
-  'APPRIS: '+data['APPRIS']+'<br><br>' +
-
-  '<b>Transcript identifiers</b><br><br>' +
-
-  'CCDS: '+data['CCDS']+'<br>' +
-  'ENSP: '+data['ENSP']+'<br>' +
-  'SwissProt: '+data['SWISSPROT']+'<br>' +
-  'TrEMBL: '+data['TREMBL']+'<br>' +
-  'UniParc: '+data['UNIPARC'] +
-
-'</div>' +
-
-'<div class=\"tab-pane\" id=\"hgvs-'+uid+'\">' +
-
-  '<b>VEP HGVS</b><br><br>' +
-
-  'HGVSc: '+data['HGVSc']+'<br>' +
-  'HGVSp: '+data['HGVSp']+'<br>' +
-  'HGVS offset: '+data['HGVS_OFFSET']+'<br><br>' +
-
-  '<b>snpEff HGVS</b><br><br>' +
-
-  'HGVSc snpEff: '+data['HGVSc_snpEff']+'<br>' +
-  'HGVSp snpEff: '+data['HGVSp_snpEff'] +
-
-'</div>' +
-
-'<div class=\"tab-pane\" id=\"motif-'+uid+'\">' +
-
-  '<b>Regulación y motifs</b><br><br>' +
-
-  'Motif name: '+data['MOTIF_NAME']+'<br>' +
-  'Motif position: '+data['MOTIF_POS']+'<br>' +
-  'High information position: '+data['HIGH_INF_POS']+'<br>' +
-  'Motif score change: '+data['MOTIF_SCORE_CHANGE']+'<br>' +
-  'Transcription factors: '+data['TRANSCRIPTION_FACTORS'] +
-
-'</div>' +
-
-
-      '</div>' +
-
-    '</div>' +
-
-    '<hr>' +
-
-    '<div class=\"explore-box\">' +
-      '<div class=\"explore-title\">Explore</div>' +
-      '<div class=\"explore-desc\">Navigate to gene viewer or RNA data table</div>' +
-      '<div style=\"display:flex; gap:10px; margin-top:8px;\">' +
-      '<button class=\"go-gene\" data-gene=\"'+gene+'\">View gene info</button><br>' +
-      '<button class=\"go-rna\" data-gene=\"'+gene+'\">Go to RNA Data table</button>' +
-      '</div>' +
-    '</div>' +
-
-  '</div>';
 };
 
 // expand
@@ -1618,7 +1465,7 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
         colnames(df)[colnames(df) == "tpm"] <- new_name
       }
       
- 
+      
       
       # ===== FILTROS =====
       if(!is.null(selected_gene()) && selected_gene()!=""){
@@ -1629,7 +1476,7 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
         df <- df %>% filter(toupper(gene_name) == toupper(input$gene))
       }
       
-  
+      
       
       # ===== HIDDEN COLUMN =====
       df$gene_hidden <- df$gene_name

@@ -116,6 +116,14 @@ get_variants_with_inheritance <- function(pool){
       
       normalized AS (
         SELECT *,
+          CONCAT(
+            COALESCE(CAST(CHROM AS VARCHAR), ''), ':',
+            COALESCE(CAST(POS AS VARCHAR), ''), ':',
+            COALESCE(CAST(REF AS VARCHAR), ''), ':',
+            COALESCE(CAST(ALT AS VARCHAR), ''), ':',
+            COALESCE(CAST(Gene AS VARCHAR), ''), ':',
+            COALESCE(CAST(ENSP AS VARCHAR), '')
+          ) AS variant_source_key,
         
           CASE 
             WHEN REPLACE(CHILD_GT, '|', '/') IN ('1/0','0/1') THEN '0/1'
@@ -133,15 +141,85 @@ get_variants_with_inheritance <- function(pool){
           END AS P2_GT_N
           
         FROM combined
+      ),
+
+      ranked AS (
+        SELECT *,
+          ROW_NUMBER() OVER (
+            PARTITION BY variant_source_key
+            ORDER BY CASE WHEN src = 'WGS' THEN 1 ELSE 2 END
+          ) AS source_rank,
+          COUNT(DISTINCT src) OVER (PARTITION BY variant_source_key) AS source_count,
+          MAX(CASE WHEN src = 'WES' THEN CHILD_GT END) OVER (PARTITION BY variant_source_key) AS WES_CHILD_GT,
+          MAX(CASE WHEN src = 'WES' THEN CHILD_DP END) OVER (PARTITION BY variant_source_key) AS WES_CHILD_DP,
+          MAX(CASE WHEN src = 'WES' THEN CHILD_AD END) OVER (PARTITION BY variant_source_key) AS WES_CHILD_AD,
+          MAX(CASE WHEN src = 'WES' THEN CHILD_GQ END) OVER (PARTITION BY variant_source_key) AS WES_CHILD_GQ,
+          MAX(CASE WHEN src = 'WES' THEN PARENT1_GT END) OVER (PARTITION BY variant_source_key) AS WES_PARENT1_GT,
+          MAX(CASE WHEN src = 'WES' THEN PARENT1_DP END) OVER (PARTITION BY variant_source_key) AS WES_PARENT1_DP,
+          MAX(CASE WHEN src = 'WES' THEN PARENT1_AD END) OVER (PARTITION BY variant_source_key) AS WES_PARENT1_AD,
+          MAX(CASE WHEN src = 'WES' THEN PARENT1_GQ END) OVER (PARTITION BY variant_source_key) AS WES_PARENT1_GQ,
+          MAX(CASE WHEN src = 'WES' THEN PARENT2_GT END) OVER (PARTITION BY variant_source_key) AS WES_PARENT2_GT,
+          MAX(CASE WHEN src = 'WES' THEN PARENT2_DP END) OVER (PARTITION BY variant_source_key) AS WES_PARENT2_DP,
+          MAX(CASE WHEN src = 'WES' THEN PARENT2_AD END) OVER (PARTITION BY variant_source_key) AS WES_PARENT2_AD,
+          MAX(CASE WHEN src = 'WES' THEN PARENT2_GQ END) OVER (PARTITION BY variant_source_key) AS WES_PARENT2_GQ,
+          MAX(CASE WHEN src = 'WGS' THEN CHILD_GT END) OVER (PARTITION BY variant_source_key) AS WGS_CHILD_GT,
+          MAX(CASE WHEN src = 'WGS' THEN CHILD_DP END) OVER (PARTITION BY variant_source_key) AS WGS_CHILD_DP,
+          MAX(CASE WHEN src = 'WGS' THEN CHILD_AD END) OVER (PARTITION BY variant_source_key) AS WGS_CHILD_AD,
+          MAX(CASE WHEN src = 'WGS' THEN CHILD_GQ END) OVER (PARTITION BY variant_source_key) AS WGS_CHILD_GQ,
+          MAX(CASE WHEN src = 'WGS' THEN PARENT1_GT END) OVER (PARTITION BY variant_source_key) AS WGS_PARENT1_GT,
+          MAX(CASE WHEN src = 'WGS' THEN PARENT1_DP END) OVER (PARTITION BY variant_source_key) AS WGS_PARENT1_DP,
+          MAX(CASE WHEN src = 'WGS' THEN PARENT1_AD END) OVER (PARTITION BY variant_source_key) AS WGS_PARENT1_AD,
+          MAX(CASE WHEN src = 'WGS' THEN PARENT1_GQ END) OVER (PARTITION BY variant_source_key) AS WGS_PARENT1_GQ,
+          MAX(CASE WHEN src = 'WGS' THEN PARENT2_GT END) OVER (PARTITION BY variant_source_key) AS WGS_PARENT2_GT,
+          MAX(CASE WHEN src = 'WGS' THEN PARENT2_DP END) OVER (PARTITION BY variant_source_key) AS WGS_PARENT2_DP,
+          MAX(CASE WHEN src = 'WGS' THEN PARENT2_AD END) OVER (PARTITION BY variant_source_key) AS WGS_PARENT2_AD,
+          MAX(CASE WHEN src = 'WGS' THEN PARENT2_GQ END) OVER (PARTITION BY variant_source_key) AS WGS_PARENT2_GQ
+        FROM (
+          SELECT DISTINCT *
+          FROM normalized
+        )
       )
       
       SELECT 
-        *,
+        * EXCLUDE (variant_source_key, source_rank, source_count, CHILD_DP, CHILD_AD, CHILD_GQ),
+
+        -- MAIN TABLE METRICS
+        CASE
+          WHEN source_count = 2 THEN GREATEST(
+            TRY_CAST(WES_CHILD_DP AS DOUBLE),
+            TRY_CAST(WGS_CHILD_DP AS DOUBLE)
+          )
+          ELSE TRY_CAST(CHILD_DP AS DOUBLE)
+        END AS CHILD_DP,
+
+        CASE
+          WHEN source_count = 2
+               AND TRY_CAST(WES_CHILD_AD AS DOUBLE) IS NOT NULL
+               AND TRY_CAST(WGS_CHILD_AD AS DOUBLE) IS NOT NULL
+          THEN CAST(GREATEST(
+            TRY_CAST(WES_CHILD_AD AS DOUBLE),
+            TRY_CAST(WGS_CHILD_AD AS DOUBLE)
+          ) AS VARCHAR)
+          WHEN source_count = 2
+               AND COALESCE(TRY_CAST(WES_CHILD_DP AS DOUBLE), -1) >=
+                   COALESCE(TRY_CAST(WGS_CHILD_DP AS DOUBLE), -1)
+          THEN WES_CHILD_AD
+          WHEN source_count = 2 THEN WGS_CHILD_AD
+          ELSE CHILD_AD
+        END AS CHILD_AD,
+
+        CASE
+          WHEN source_count = 2 THEN GREATEST(
+            TRY_CAST(WES_CHILD_GQ AS DOUBLE),
+            TRY_CAST(WGS_CHILD_GQ AS DOUBLE)
+          )
+          ELSE TRY_CAST(CHILD_GQ AS DOUBLE)
+        END AS CHILD_GQ,
       
         -- SOURCE
         CASE
-          WHEN COUNT(DISTINCT src) OVER (PARTITION BY ID) = 2 THEN 'BOTH'
-          ELSE MAX(src) OVER (PARTITION BY ID)
+          WHEN source_count = 2 THEN 'BOTH'
+          ELSE src
         END AS source,
         
         -- INHERITANCE TYPE
@@ -194,10 +272,8 @@ get_variants_with_inheritance <- function(pool){
           ' | P2:', P2_GT_N, ' AD:', PARENT2_AD, ')'
         ) AS inheritance
         
-      FROM (
-        SELECT DISTINCT *
-        FROM normalized
-      )
+      FROM ranked
+      WHERE source_rank = 1
     "
     
   } else if(has_wes){
@@ -212,101 +288,6 @@ get_variants_with_inheritance <- function(pool){
   return(df)
 }
 
-
-get_variants_sql_base <- function(){
-  
-  files <- list.files("../data/variants", full.names = TRUE)
-  
-  has_wes <- any(grepl("wes", files, ignore.case = TRUE))
-  has_wgs <- any(grepl("wgs", files, ignore.case = TRUE))
-  
-  if(has_wes & has_wgs){
-    
-    return("
-      WITH wes AS (
-        SELECT *, 'WES' AS src FROM read_parquet('../data/variants/wes*.parquet')
-      ),
-      wgs AS (
-        SELECT *, 'WGS' AS src FROM read_parquet('../data/variants/wgs*.parquet')
-      ),
-      combined AS (
-        SELECT * FROM wes
-        UNION ALL
-        SELECT * FROM wgs
-      ),
-      
-      normalized AS (
-        SELECT *,
-        
-          CASE 
-            WHEN REPLACE(CHILD_GT, '|', '/') IN ('1/0','0/1') THEN '0/1'
-            ELSE REPLACE(CHILD_GT, '|', '/')
-          END AS CHILD_GT_N,
-          
-          CASE 
-            WHEN REPLACE(PARENT1_GT, '|', '/') IN ('1/0','0/1') THEN '0/1'
-            ELSE REPLACE(PARENT1_GT, '|', '/')
-          END AS P1_GT_N,
-          
-          CASE 
-            WHEN REPLACE(PARENT2_GT, '|', '/') IN ('1/0','0/1') THEN '0/1'
-            ELSE REPLACE(PARENT2_GT, '|', '/')
-          END AS P2_GT_N
-          
-        FROM combined
-      )
-      
-      SELECT *
-      FROM normalized
-    ")
-    
-  } else if(has_wes){
-    
-    return("
-      SELECT *
-      FROM read_parquet('../data/variants/wes*.parquet')
-    ")
-    
-  } else {
-    
-    return("
-      SELECT *
-      FROM read_parquet('../data/variants/wgs*.parquet')
-    ")
-    
-  }
-}
-
-get_variants_sql <- function(){
-  
-  return("
-    WITH wes AS (
-      SELECT *, 'WES' AS src FROM read_parquet('../data/variants/wes*.parquet')
-    ),
-    wgs AS (
-      SELECT *, 'WGS' AS src FROM read_parquet('../data/variants/wgs*.parquet')
-    ),
-    combined AS (
-      SELECT * FROM wes
-      UNION ALL
-      SELECT * FROM wgs
-    ),
-    
-    normalized AS (
-      SELECT *,
-      
-        CASE 
-          WHEN REPLACE(CHILD_GT, '|', '/') IN ('1/0','0/1') THEN '0/1'
-          ELSE REPLACE(CHILD_GT, '|', '/')
-        END AS CHILD_GT_N
-        
-      FROM combined
-    )
-    
-    SELECT *
-    FROM normalized
-  ")
-}
 
 # =====================
 # RNA

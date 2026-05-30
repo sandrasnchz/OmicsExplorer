@@ -22,6 +22,23 @@ dataViewerUI <- function(id){
       )
     ),
     
+    tags$script(HTML("
+      Shiny.addCustomMessageHandler('dataViewer_adjust_tables', function(message) {
+        var ids = message.ids || [];
+        var adjustTables = function() {
+          ids.forEach(function(id) {
+            var table = $('#' + id).find('table.dataTable');
+            if (table.length && $.fn.dataTable.isDataTable(table)) {
+              table.DataTable().columns.adjust().draw(false);
+            }
+          });
+        };
+        setTimeout(adjustTables, 50);
+        setTimeout(adjustTables, 250);
+        setTimeout(adjustTables, 600);
+      });
+    ")),
+    
     tabsetPanel(
       
       id=ns("main_tabs"),
@@ -230,10 +247,7 @@ dataViewerUI <- function(id){
                     "AD - de_novo"="AD",
                     "XD - de_novo"="XD"
                   ),
-                  selected=c(
-                    "AD",
-                    "XD"
-                  ),
+                  selected=character(0),
                   inline=TRUE,
                   shape="square",
                   icon=icon("check")
@@ -425,6 +439,7 @@ dataViewerServer <- function(id, pool, selected_gene){
     navigating <- reactiveVal(FALSE)
     
     dp_filter <- reactiveVal(90)
+    de_novo_selection <- reactiveVal(character(0))
     
     observeEvent(input$apply_dp,{
       
@@ -433,6 +448,52 @@ dataViewerServer <- function(id, pool, selected_gene){
       )
       
     })
+    
+    observeEvent(input$de_novo_source,{
+      
+      selected <- input$de_novo_source %||% character(0)
+      added <- setdiff(selected, de_novo_selection())
+      
+      if(length(added) > 0){
+        
+        chosen <- tail(added, 1)
+        de_novo_selection(chosen)
+        
+        updatePrettyCheckboxGroup(
+          session,
+          "de_novo_source",
+          selected=chosen
+        )
+        
+        updatePrettyCheckboxGroup(
+          session,
+          "inheritance_source",
+          selected=character(0)
+        )
+        
+      } else {
+        de_novo_selection(selected)
+      }
+      
+    }, ignoreInit=TRUE)
+    
+    observeEvent(input$inheritance_source,{
+      
+      if(
+        length(input$inheritance_source %||% character(0)) > 0 &&
+        length(input$de_novo_source %||% character(0)) > 0
+      ){
+        
+        de_novo_selection(character(0))
+        
+        updatePrettyCheckboxGroup(
+          session,
+          "de_novo_source",
+          selected=character(0)
+        )
+      }
+      
+    }, ignoreInit=TRUE)
     
     # =====================
     # RESET CONTROLADO
@@ -450,6 +511,11 @@ dataViewerServer <- function(id, pool, selected_gene){
         )
       }
       navigating(FALSE)
+      
+      session$sendCustomMessage(
+        "dataViewer_adjust_tables",
+        list(ids = c(session$ns("variants"), session$ns("rna")))
+      )
     })
     
     # =====================
@@ -1109,17 +1175,21 @@ dataViewerServer <- function(id, pool, selected_gene){
           rownames = FALSE,
           escape = FALSE,
           selection = "none",
-          extensions = 'FixedHeader',
           
           options=list(
             scrollX=TRUE,
+            scrollY="720px",
             scrollCollapse=TRUE,
             pageLength=10,
-            fixedHeader=TRUE,
+            deferRender=TRUE,
             autoWidth=TRUE,
             
             initComplete=JS(
-              "function(settings,json){this.api().columns.adjust();}"),
+              "function(settings,json){
+                var api = this.api();
+                setTimeout(function(){ api.columns.adjust().draw(false); }, 0);
+                setTimeout(function(){ api.columns.adjust().draw(false); }, 250);
+              }"),
             
             drawCallback=JS("function(settings){this.api().columns.adjust();}"),
             
@@ -1276,6 +1346,11 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
       } else if(input$nav_click$tab == "variants"){
         updateTabsetPanel(session, "main_tabs", selected = "Variants (WES + WGS)")
       }
+      
+      session$sendCustomMessage(
+        "dataViewer_adjust_tables",
+        list(ids = c(session$ns("variants"), session$ns("rna")))
+      )
     })
     
     rna_files <- reactivePoll(
@@ -1488,15 +1563,19 @@ Shiny.addCustomMessageHandler('variant_detail_render', function(msg) {
         rownames = FALSE,
         escape = FALSE,
         selection = "none",
-        extensions = 'FixedHeader',
         options=list(
           scrollX=TRUE,
+          scrollY="1200px",
           scrollCollapse=TRUE,
           pageLength=10,
-          fixedHeader=TRUE,
+          deferRender=TRUE,
           autoWidth=TRUE,
           
-          initComplete=JS("function(settings,json){this.api().columns.adjust();}"),
+          initComplete=JS("function(settings,json){
+            var api = this.api();
+            setTimeout(function(){ api.columns.adjust().draw(false); }, 0);
+            setTimeout(function(){ api.columns.adjust().draw(false); }, 250);
+          }"),
           
           drawCallback=JS("function(settings){this.api().columns.adjust();}"),
           

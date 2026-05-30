@@ -1,4 +1,4 @@
-/* www/styles.css
+/* www/styles.css */
 
 /* ========================= */
 /* GENERAL */
@@ -283,7 +283,9 @@ select {
   background: #eeeeee;
 }
 
-/* TABLE */
+/* ========================= */
+/* SHARED TABLES */
+/* ========================= */
 
 .table-box {
   background: #eeeeee;
@@ -293,8 +295,10 @@ select {
 }
 
 table.dataTable {
-  width: 100% !important;
-  border-collapse: collapse;
+  width: 100%;
+  table-layout: auto;
+  border-collapse: separate !important;
+  border-spacing: 0;
 }
 
 table.dataTable tbody tr:hover {
@@ -304,12 +308,11 @@ table.dataTable tbody tr:hover {
 table.dataTable thead th {
   font-weight: 600;
   color: #333;
-  position: sticky;
-  top: 0;
-  z-index: 2;
 }
 
-/* DATATABLE CONTROLS */
+/* ========================= */
+/* DATATABLE BASE */
+/* ========================= */
 
 .dataTables_wrapper {
   width: 100%;
@@ -404,7 +407,10 @@ table.dataTable thead th {
 }
 
 
-/* ========================= *
+/* ========================= */
+/* DATATABLE CARD STYLING */
+/* ========================= */
+
 /* Contenedor general tipo card */
 .dataTables_wrapper {
   background: #f7f7f9;
@@ -424,6 +430,30 @@ table.dataTable thead th {
 table.dataTable thead th {
   border-bottom: none !important;
   font-weight: 600;
+}
+
+/* Data Viewer fixed header.
+   This avoids the DataTables FixedHeader clone, which can desync after tab changes. */
+#viewer-variants .dataTables_scrollHead,
+#viewer-rna .dataTables_scrollHead {
+  position: sticky !important;
+  top: 0;
+  z-index: 30;
+  background: #8b1e5b;
+}
+
+#viewer-variants .dataTables_scrollHead table,
+#viewer-rna .dataTables_scrollHead table {
+  margin-bottom: 0 !important;
+}
+
+#viewer-variants .dataTables_scrollBody,
+#viewer-rna .dataTables_scrollBody {
+  border-bottom: 1px solid #ddd;
+}
+
+#viewer-rna .dataTables_scrollBody {
+  overflow-y: hidden !important;
 }
 
 /* Filas */
@@ -522,6 +552,10 @@ table.dataTable th.inheritance-col {
 }
 
 
+/* ========================= */
+/* LOGO */
+/* ========================= */
+
 .logo-container {
   display: flex;
   justify-content: center;
@@ -536,7 +570,7 @@ table.dataTable th.inheritance-col {
 
 
 /* ========================= */
-/* FILTROS DATA VIEWER */
+/* DATA VIEWER FILTERS */
 /* ========================= */
 
 .filter-box{
@@ -593,6 +627,10 @@ table.dataTable th.inheritance-col {
         0 4px 12px rgba(139,30,91,.12) !important;
 }
 
+/* ========================= */
+/* DATA VIEWER DOWNLOADS */
+/* ========================= */
+
 .download-box {
   background: #eeeeee;
   border-radius: 16px;
@@ -636,6 +674,10 @@ table.dataTable th.inheritance-col {
   color: white !important;
 }
 
+/* ========================= */
+/* IMPACT BADGES */
+/* ========================= */
+
 .impact-badge {
   display: inline-block;
   min-width: 82px;
@@ -646,10 +688,6 @@ table.dataTable th.inheritance-col {
   font-weight: 700;
   text-align: center;
 }
-
-/* ========================= */
-/* COLUMNA IMPACT */
-/* ========================= */
 
 .impact-high {
   background: #c0392b;
@@ -666,6 +704,10 @@ table.dataTable th.inheritance-col {
 .impact-modifier {
   background: #7f8c8d;
 }
+
+/* ========================= */
+/* TABS BASE */
+/* ========================= */
 
 .nav-tabs {
   border-bottom: none;
@@ -694,7 +736,7 @@ table.dataTable th.inheritance-col {
 }
 
 /* ========================= */
-/* DROP TABS */
+/* TABS OVERRIDES AND PANELS */
 /* ========================= */
 
 .nav-tabs {
@@ -745,6 +787,10 @@ table.dataTable th.inheritance-col {
 .tab-pane.active {
   display: block;
 }
+
+/* ========================= */
+/* VARIANT DETAIL TABS */
+/* ========================= */
 
 .variant-detail {
   max-width: calc(100vw - 380px);
@@ -840,6 +886,10 @@ table.dataTable th.inheritance-col {
 }
 
 
+/* ========================= */
+/* GENOTYPE TABLES */
+/* ========================= */
+
 .genotype-table {
   width: auto !important;
   display: inline-table !important;
@@ -855,9 +905,9 @@ table.dataTable th.inheritance-col {
 }
 
 
-/* =========================
-        switches
-========================= */
+/* ========================= */
+/* SWITCH OVERRIDES */
+/* ========================= */
 
 .omics-switch .pretty.p-switch.p-fill input:checked ~ .state:before{
     background-color:#8b1e5b !important;
@@ -872,9 +922,9 @@ table.dataTable th.inheritance-col {
     font-weight:700 !important;
 }
 
-/* =========================
-   Filter cards
-========================= */
+/* ========================= */
+/* FILTER CARDS */
+/* ========================= */
 
 .filter-card{
     background:white;
@@ -898,9 +948,9 @@ table.dataTable th.inheritance-col {
 }
 
 
-/* =========================
-           sliders
-========================= */
+/* ========================= */
+/* SLIDER OVERRIDES */
+/* ========================= */
 
 .irs-bar{
     background:#8b1e5b !important;
@@ -924,9 +974,9 @@ table.dataTable th.inheritance-col {
 }
 
 
-/* =========================
-         checkbox
-========================= */
+/* ========================= */
+/* CHECKBOX OVERRIDES */
+/* ========================= */
 
 /* NO tocar switches */
 .pretty:not(.p-switch) .state label:before{
